@@ -1,0 +1,37 @@
+{
+  "lookup": {
+    "rules": {
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"domanda_generica\"}}]": "action_llm_fallback",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"domanda_generica\"}}, {\"prev_action\": {\"action_name\": \"action_llm_fallback\"}, \"user\": {\"intent\": \"domanda_generica\"}}]": "action_listen",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"negazione\"}}]": "utter_ok_niente_domande",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"negazione\"}}, {\"prev_action\": {\"action_name\": \"utter_ok_niente_domande\"}, \"user\": {\"intent\": \"negazione\"}}]": "action_listen",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"saluto\"}}]": "utter_saluto",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"saluto\"}}, {\"prev_action\": {\"action_name\": \"utter_saluto\"}, \"user\": {\"intent\": \"saluto\"}}]": "form_informazioni_utente",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"saluto\"}}, {\"prev_action\": {\"action_name\": \"utter_saluto\"}, \"user\": {\"intent\": \"saluto\"}}, {\"active_loop\": {\"name\": \"form_informazioni_utente\"}, \"prev_action\": {\"action_name\": \"form_informazioni_utente\"}, \"user\": {\"intent\": \"saluto\"}}]": "action_listen",
+      "[{\"active_loop\": {\"name\": \"should_not_be_set\"}, \"prev_action\": {\"action_name\": \"form_informazioni_utente\"}}]": "utter_submit",
+      "[{\"active_loop\": {\"name\": \"should_not_be_set\"}, \"prev_action\": {\"action_name\": \"form_informazioni_utente\"}}, {\"active_loop\": {\"name\": \"should_not_be_set\"}, \"prev_action\": {\"action_name\": \"utter_submit\"}}]": "action_listen"
+    },
+    "rule_only_slots": [],
+    "rule_only_loops": [
+      "form_informazioni_utente"
+    ],
+    "rules_for_loop_unhappy_path": {
+      "[{\"prev_action\": {\"action_name\": \"utter_saluto\"}}, {\"active_loop\": {\"name\": \"form_informazioni_utente\"}, \"prev_action\": {\"action_name\": \"form_informazioni_utente\"}, \"user\": {\"intent\": \"saluto\"}}]": "do_not_predict_loop_action"
+    },
+    "rules_not_in_stories": [
+      "[{\"active_loop\": {\"name\": \"should_not_be_set\"}, \"prev_action\": {\"action_name\": \"form_informazioni_utente\"}}]",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"negazione\"}}]",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"negazione\"}}, {\"prev_action\": {\"action_name\": \"utter_ok_niente_domande\"}, \"user\": {\"intent\": \"negazione\"}}]",
+      "predicting default action with intent restart",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"domanda_generica\"}}]",
+      "handling active loops and forms - form_informazioni_utente - action_listen",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"saluto\"}}]",
+      "predicting default action with intent back",
+      "handling active loops and forms - form_informazioni_utente",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"domanda_generica\"}}, {\"prev_action\": {\"action_name\": \"action_llm_fallback\"}, \"user\": {\"intent\": \"domanda_generica\"}}]",
+      "[{\"active_loop\": {\"name\": \"should_not_be_set\"}, \"prev_action\": {\"action_name\": \"form_informazioni_utente\"}}, {\"active_loop\": {\"name\": \"should_not_be_set\"}, \"prev_action\": {\"action_name\": \"utter_submit\"}}]",
+      "predicting default action with intent session_start",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"saluto\"}}, {\"prev_action\": {\"action_name\": \"utter_saluto\"}, \"user\": {\"intent\": \"saluto\"}}]"
+    ]
+  }
+}

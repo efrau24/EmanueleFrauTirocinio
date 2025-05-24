@@ -1,0 +1,154 @@
+version: "3.1"
+
+
+nlu:
+
+
+- intent: saluto
+  examples: |
+    - Ciao
+    - Salve
+    - Buonasera
+    - Buonpomeriggio 
+    - Salve
+    - Buongiorno, chatbot
+    - Ciao
+    - Buongiorno
+    - Ehi!
+    - Hey
+
+
+
+- intent: nome_utente
+  examples: | 
+    - Mi chiamo [Emanuele](nome)
+    - Sono [Emanuele](nome)
+    - Il mio nome è [Emanuele](nome)
+    - [Emanuele](nome)
+    - Mi chiamo [Luca](nome)
+    - Sono [Giulia](nome)
+    - Il mio nome è [Alessandro](nome)
+    - [Chiara](nome)
+    - Mi chiamo [Marco](nome)
+    - Sono [Anna](nome)
+
+
+- intent: eta_utente
+  examples: | 
+    - Ho [30](eta) anni
+    - [30](eta)
+    
+
+- intent: citta_utente
+  examples: | 
+    - Vengo da [Milano](luogo)
+    - Sono di [Roma](luogo)
+    - [San Gavino](luogo)  
+    - Vengo da [Cagliari](luogo)
+    - Sono di [Torino](luogo)
+    - [Sanluri](luogo)  
+
+- intent: arrivederci
+  examples: |
+    - Ciao, a presto
+    - Arrivederci
+    - A dopo
+    - Buona giornata
+    - A domani
+    - Buona serata
+    - Ci vediamo
+    - A più tardi
+    - A presto
+    - Ci sentiamo
+    - Devo andare
+
+- intent: umore_buono
+  examples: |
+    - Sto bene oggi
+    - Mi sento felice
+    - Sono felice
+    - Oggi sono di buon umore
+    - Oggi va tutto bene
+    - Mi sento bene 
+    - Sto bene
+    - Mi sento positivo
+
+- intent: umore_triste
+  examples: |
+    - Sono giù
+    - Non sto bene
+    - Mi sento triste
+    - Mi sento depresso
+
+- intent: ambivalenza
+  examples: |
+    - A volte sto bene, altre male
+    - Non so come mi sento
+
+- intent: esprimi_problema
+  examples: |
+    - Non riesco a dormire
+    - Ho sempre ansia
+    - Non ho motivazione
+
+
+- intent: motivazione
+  examples: |
+    - Voglio cambiare
+    - Mi impegno per migliorare
+
+- intent: nega
+  examples: |
+    - No
+    - No grazie
+    - Non ora
+    - Preferisco di no
+
+- intent: rifiuto 
+  examples: |
+    - Non voglio dare informazioni
+    - Non voglio parlarne
+    - Non mi va
+    - Non mi va di parlarne
+    - Non voglio rispondere
+    - Non voglio parlare di me
+    - Ora non voglio parlarne
+    - Non voglio condividere informazioni
+    - Non voglio dire il mio nome
+    - Non voglio dire la mia età
+    - Non voglio dire da dove vengo
+    - Non voglio parlare di me stesso
+    - Non voglio condividere dettagli personali
+
+- intent: conferma
+  examples: |
+    - Sì
+    - Certo
+    - Va bene
+    - Assolutamente
+    - Si, va bene
+    - Si, certo
+    - Certamente
+    - Ok
+    - D'accordo
+
+
+- lookup: nome
+  examples: |
+    - Emanuele
+    - Luca
+    - Marco
+    - Chiara
+    - Anna
+    - Alessandro
+    - Matteo
+    - Sara 
+    - Francesco
+    - Davide
+    - Laura
+    - Nicola
+    - Valentina
+    - Gabriele
+    - Sofia
+    - Lorenzo
+    - Giulia

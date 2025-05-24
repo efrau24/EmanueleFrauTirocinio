@@ -1,0 +1,35 @@
+{
+  "lookup": {
+    "rules": {
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"negazione\"}}]": "utter_ok_niente_domande",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"negazione\"}}, {\"prev_action\": {\"action_name\": \"utter_ok_niente_domande\"}, \"user\": {\"intent\": \"negazione\"}}]": "action_listen",
+      "[{\"active_loop\": {\"name\": \"should_not_be_set\"}, \"prev_action\": {\"action_name\": \"form_informazioni_utente\"}}]": "utter_submit",
+      "[{\"active_loop\": {\"name\": \"should_not_be_set\"}, \"prev_action\": {\"action_name\": \"form_informazioni_utente\"}}, {\"active_loop\": {\"name\": \"should_not_be_set\"}, \"prev_action\": {\"action_name\": \"utter_submit\"}}]": "action_listen",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"saluto\"}}]": "utter_saluto",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"saluto\"}}, {\"prev_action\": {\"action_name\": \"utter_saluto\"}, \"user\": {\"intent\": \"saluto\"}}]": "action_listen",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"conferma\"}}]": "form_informazioni_utente",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"conferma\"}}, {\"active_loop\": {\"name\": \"form_informazioni_utente\"}, \"prev_action\": {\"action_name\": \"form_informazioni_utente\"}, \"user\": {\"intent\": \"conferma\"}}]": "action_listen"
+    },
+    "rule_only_slots": [],
+    "rule_only_loops": [
+      "form_informazioni_utente"
+    ],
+    "rules_for_loop_unhappy_path": {
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}}, {\"active_loop\": {\"name\": \"form_informazioni_utente\"}, \"prev_action\": {\"action_name\": \"form_informazioni_utente\"}, \"user\": {\"intent\": \"conferma\"}}]": "do_not_predict_loop_action"
+    },
+    "rules_not_in_stories": [
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"conferma\"}}]",
+      "predicting default action with intent session_start",
+      "handling active loops and forms - form_informazioni_utente - action_listen",
+      "[{\"active_loop\": {\"name\": \"should_not_be_set\"}, \"prev_action\": {\"action_name\": \"form_informazioni_utente\"}}, {\"active_loop\": {\"name\": \"should_not_be_set\"}, \"prev_action\": {\"action_name\": \"utter_submit\"}}]",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"saluto\"}}]",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"negazione\"}}, {\"prev_action\": {\"action_name\": \"utter_ok_niente_domande\"}, \"user\": {\"intent\": \"negazione\"}}]",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"negazione\"}}]",
+      "[{\"prev_action\": {\"action_name\": \"action_listen\"}, \"user\": {\"intent\": \"saluto\"}}, {\"prev_action\": {\"action_name\": \"utter_saluto\"}, \"user\": {\"intent\": \"saluto\"}}]",
+      "predicting default action with intent restart",
+      "predicting default action with intent back",
+      "handling active loops and forms - form_informazioni_utente",
+      "[{\"active_loop\": {\"name\": \"should_not_be_set\"}, \"prev_action\": {\"action_name\": \"form_informazioni_utente\"}}]"
+    ]
+  }
+}

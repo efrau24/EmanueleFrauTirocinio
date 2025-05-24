@@ -1,0 +1,8 @@
+{
+  "rule_only_slots": [
+    "form_completato"
+  ],
+  "rule_only_loops": [
+    "form_informazioni_utente"
+  ]
+}

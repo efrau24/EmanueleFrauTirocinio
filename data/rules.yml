@@ -1,0 +1,48 @@
+version: "3.1"
+
+rules:
+
+#regole di saluto
+
+- rule: Saluto dopo completamento form
+  condition:
+    - slot_was_set:
+        - form_completato: true
+  steps:
+    - intent: saluto
+    - action: utter_saluto_personalizzato
+
+
+#regole form 
+
+- rule: Avvia form all'inizio della conversazione
+  steps:
+    - intent: saluto
+    - action: utter_saluto_iniziale
+    - action: action_conversazione_avviata
+    - action: form_informazioni_utente
+    - active_loop: form_informazioni_utente
+
+- rule: Completamento del form
+  condition:
+    - active_loop: form_informazioni_utente
+  steps:
+    - action: form_informazioni_utente
+    - active_loop: null
+    - slot_was_set:
+        - requested_slot: null
+    - action: action_submit_form_informazioni_utente
+
+
+- rule: Utente rifiuta di dare informazioni
+  steps:
+    - intent: rifiuto
+    - action: utter_ok_niente_domande
+
+
+#regole di conversazione
+
+- rule: LLM fallback
+  steps:
+    - intent: nlu_fallback
+    - action: action_llm_fallback
