@@ -1,1 +1,48 @@
+# Ambiente virtuale
 venv/
+env/
+ENV/
+
+# Cache di Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# File temporanei di sistema
+.DS_Store
+Thumbs.db
+
+# File Rasa temporanei
+.rasa/
+results/
+*.db
+
+# Modelli Rasa (se non vuoi tenerli in repo)
+models/
+
+# File di log
+*.log
+
+# Configurazioni locali/editor
+.vscode/
+.idea/
+*.swp
+*.bak
+
+# File pip
+pip-log.txt
+
+# Test output
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+.pytest_cache/
+
+# File di backup
+*.~*
+*.tmp
+
+# SQLite o altri database temporanei
+*.sqlite
+*.sqlite3
