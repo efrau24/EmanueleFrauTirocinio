@@ -21,6 +21,7 @@ entities:
   - eta
   - luogo
   - topic
+  - atteggiamento
 
 slots:
 
@@ -38,12 +39,6 @@ slots:
     mappings:
       - type: custom
 
-  topic:
-    type: text
-    influence_conversation: true
-    mappings:
-      - type: from_entity
-        entity: topic
   nome:
     type: text
     influence_conversation: true
@@ -99,6 +94,11 @@ responses:
     - text: "Ciao! Sono qui per supportarti. Prima di iniziare avrei bisogno delle tue informazioni personali."
     - text: "Salve! Sono qui per aiutarti. Prima di partire, avrei bisogno di alcune informazioni."
  
+
+  utter_prego:
+    - text: "Non c'è di che!"
+    - text: "Non c'è bisogno di ringraziarmi, sono qui per aiutarti!"
+    - text: "È un piacere aiutarti! Non esitare a chiedere se hai bisogno di aiuto."
 
   utter_saluto_personalizzato:
     - text: "Ciao {nome}! Come ti senti oggi?"

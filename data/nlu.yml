@@ -17,6 +17,13 @@ nlu:
     - Ehi!
     - Hey
 
+- intent: grazie
+  examples: |
+    - Grazie
+    - Ti ringrazio
+    - Grazie mille
+    - Grazie per l'aiuto
+    - Grazie del supporto
 
 
 - intent: nome_utente
@@ -62,40 +69,6 @@ nlu:
     - Ci sentiamo
     - Devo andare
 
-- intent: umore_buono
-  examples: |
-    - Sto bene oggi
-    - Mi sento felice
-    - Sono felice
-    - Oggi sono di buon umore
-    - Oggi va tutto bene
-    - Mi sento bene 
-    - Sto bene
-    - Mi sento positivo
-
-- intent: umore_triste
-  examples: |
-    - Sono giù
-    - Non sto bene
-    - Mi sento triste
-    - Mi sento depresso
-
-- intent: ambivalenza
-  examples: |
-    - A volte sto bene, altre male
-    - Non so come mi sento
-
-- intent: esprimi_problema
-  examples: |
-    - Non riesco a dormire
-    - Ho sempre ansia
-    - Non ho motivazione
-
-
-- intent: motivazione
-  examples: |
-    - Voglio cambiare
-    - Mi impegno per migliorare
 
 - intent: nega
   examples: |
@@ -133,6 +106,46 @@ nlu:
     - D'accordo
 
 
+- intent: umore_buono
+  examples: |
+    - Sto bene oggi
+    - Mi sento felice
+    - Sono felice
+    - Oggi sono di buon umore
+    - Oggi va tutto bene
+    - Mi sento bene 
+    - Sto bene
+    - Mi sento positivo
+
+- intent: umore_triste
+  examples: |
+    - Sono giù
+    - Non sto bene
+    - Sto male
+    - Mi sento triste
+    - Mi sento depresso
+
+- intent: ambivalenza
+  examples: |
+    - A volte sto bene, altre male
+    - Non so come mi sento
+
+- intent: esprimi_problema
+  examples: |
+    - Non riesco a dormire
+    - Ho sempre ansia
+    - Non ho motivazione
+
+
+- intent: motivazione
+  examples: |
+    - Voglio cambiare
+    - Mi impegno per migliorare
+
+
+- intent: informazioni_topic
+  examples: 
+
 - lookup: nome
   examples: |
     - Emanuele
@@ -152,3 +165,87 @@ nlu:
     - Sofia
     - Lorenzo
     - Giulia
+
+- lookup: topic
+  examples: |
+    - ansia
+    - ansioso
+    - agitazione
+    - stress
+    - stressato
+    - autostima
+    - insicurezza
+    - rabbia
+    - irritazione
+    - alimentazione
+    - cibo
+    - dieta
+    - violenza
+    - abuso
+    - diabete
+    - glicemia alta
+    - peso
+    - sovrappeso
+    - obeso
+    - grasso
+    - aderenza_farmaci
+    - non prendo le medicine
+    - alcol
+    - bevande alcoliche
+    - fumo
+    - sigarette
+    - dipendenza
+    - dipendenze
+
+
+- synonym: ansia
+  examples: |
+    - ansioso
+    - agitazione
+
+- synonym: stress
+  examples: |
+    - stressato
+
+- synonym: autostima
+  examples: |
+    - insicurezza
+
+- synonym: rabbia
+  examples: |
+    - irritazione
+
+- synonym: alimentazione
+  examples: |
+    - cibo
+    - dieta
+
+- synonym: violenza
+  examples: |
+    - abuso
+
+- synonym: diabete
+  examples: |
+    - glicemia alta
+
+- synonym: peso
+  examples: |
+    - sovrappeso
+    - grasso
+    - obeso
+
+- synonym: aderenza_farmaci
+  examples: |
+    - non prendo le medicine
+
+- synonym: alcol
+  examples: |
+    - bevande alcoliche
+
+- synonym: fumo
+  examples: |
+    - sigarette
+
+- synonym: dipendenza
+  examples: |
+    - dipendenze

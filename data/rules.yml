@@ -46,3 +46,8 @@ rules:
   steps:
     - intent: nlu_fallback
     - action: action_llm_fallback
+
+- rule: Risposta a grazie
+  steps:
+    - intent: grazie
+    - action: utter_prego

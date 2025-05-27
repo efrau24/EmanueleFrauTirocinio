@@ -17,7 +17,7 @@ Thumbs.db
 results/
 *.db
 
-# Modelli Rasa (se non vuoi tenerli in repo)
+# Modelli Rasa 
 models/
 
 # File di log

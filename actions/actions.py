@@ -61,8 +61,7 @@ class ValidateFormInformazioniUtente(FormValidationAction):
         self,
         dispatcher: CollectingDispatcher,
         tracker: Tracker,
-        domain: Dict[Text, Any]
-    ) -> List[Dict[Text, Any]]:
+        domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
         
 
         if tracker.get_slot("form_completato") is True:
@@ -100,3 +99,35 @@ class ActionSubmitFormInformazioniUtente(Action):
             SlotSet("form_completato", True),
             ActiveLoop(None)
         ]
+    
+
+
+class ActionAggiornaListaTopic(Action):
+
+    
+    def name(self) -> str:
+        return "action_aggiorna_lista_topic"
+    
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+        
+        topics = tracker.get_slot("topic_list") or []
+        new_topic = next(tracker.get_latest_entity_values("topic"), None)
+        
+        if new_topic:
+                
+            if new_topic not in topics:
+                topics.append(new_topic)
+                updated_topics = topics
+            else:
+                updated_topics = topics
+
+        else:
+            updated_topics = topics
+            
+
+
+        return[SlotSet("topic_list", updated_topics)]
