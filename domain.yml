@@ -15,13 +15,14 @@ intents:
   - eta_utente
   - citta_utente
   - nlu_fallback
+  - messaggio_generico
 
 entities:
   - nome
   - eta
   - luogo
-  - topic
   - atteggiamento
+  
 
 slots:
 
@@ -58,12 +59,18 @@ slots:
       - type: from_entity
         entity: luogo
 
-  topic:
+  topic_list:
     type: list
     influence_conversation: true
     mappings:
-      - type: from_entity
-        entity: topic
+      - type: custom
+
+
+  current_topic:
+    type: text
+    influence_conversation: true
+    mappings:
+      - type: custom
 
   atteggiamento:
     type: categorical
@@ -144,7 +151,6 @@ responses:
     - text: "Nessun problema! Quando ti senti pronto, sono qui per aiutarti."
     - text: "Non preoccuparti! Io sono qui per supportarti quando sei pronto. Non esitare a contattarmi."
 
-    
 session_config:
   session_expiration_time: 60
   carry_over_slots_to_new_session: true
@@ -155,3 +161,4 @@ actions:
   - action_conversazione_avviata
   - action_saluto_personalizzato
   - action_submit_form_informazioni_utente
+  - action_classifica_topic

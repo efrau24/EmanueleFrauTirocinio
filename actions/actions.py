@@ -1,11 +1,57 @@
 from typing import Any, Text, Dict, List
-
+from transformers import pipeline
 from rasa_sdk import Action, Tracker
 from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.events import SlotSet, ActiveLoop
 from rasa_sdk.types import DomainDict
 from rasa_sdk.forms import FormValidationAction
 import requests
+
+classifier = pipeline(
+    "zero-shot-classification",
+    model="joeddav/xlm-roberta-large-xnli"
+)
+candidate_labels = [
+    "ansia", "stress", "alimentazione", "esercizio fisico", "peso",
+    "aderenza ai farmaci", "sonno", "fumo", "alcol", "relazioni", 
+    "motivazione", "dipendenze", "autostima", "insicurezza"
+]
+
+
+
+class ActionClassificaTopic(Action):
+
+    def name(self) -> Text:
+        return "action_classifica_topic"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+
+        user_message = tracker.latest_message.get("text")
+
+        topics = tracker.get_slot("topic_list") or []
+
+     
+        result = classifier(user_message, candidate_labels, multi_label=True)
+        topic = result["labels"][0]
+        score = result["scores"][0]
+
+        # Soglia di confidenza 
+        if score > 0.8:
+            dispatcher.utter_message(text=f"Ho capito che t'interessa discutere di {topic}.")
+            
+            if topic not in topics:
+                updated_topics = topics + [topic]
+            else: 
+                updated_topics = topics
+
+            return [
+                SlotSet("topic_list", updated_topics),
+                SlotSet("current_topic", topic)]
+        else:
+            dispatcher.utter_message(text="Non sono sicuro di quale sia l'argomento, puoi spiegarmi meglio?")
+            return []
 
 
 class ActionLLMFallback(Action):
@@ -100,34 +146,3 @@ class ActionSubmitFormInformazioniUtente(Action):
             ActiveLoop(None)
         ]
     
-
-
-class ActionAggiornaListaTopic(Action):
-
-    
-    def name(self) -> str:
-        return "action_aggiorna_lista_topic"
-    
-    def run(
-        self,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
-        
-        topics = tracker.get_slot("topic_list") or []
-        new_topic = next(tracker.get_latest_entity_values("topic"), None)
-        
-        if new_topic:
-                
-            if new_topic not in topics:
-                topics.append(new_topic)
-                updated_topics = topics
-            else:
-                updated_topics = topics
-
-        else:
-            updated_topics = topics
-            
-
-
-        return[SlotSet("topic_list", updated_topics)]

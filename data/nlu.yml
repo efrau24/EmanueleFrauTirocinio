@@ -143,8 +143,16 @@ nlu:
     - Mi impegno per migliorare
 
 
-- intent: informazioni_topic
-  examples: 
+- intent: messaggio_generico
+  examples: |
+    - Mi sento strano ultimamente
+    - Vorrei parlare con qualcuno
+    - Sono molto ansioso
+    - Sono molto stressato
+    - Non sto bene
+    - Ci sono cose che vorrei cambiare
+
+
 
 - lookup: nome
   examples: |
@@ -165,87 +173,3 @@ nlu:
     - Sofia
     - Lorenzo
     - Giulia
-
-- lookup: topic
-  examples: |
-    - ansia
-    - ansioso
-    - agitazione
-    - stress
-    - stressato
-    - autostima
-    - insicurezza
-    - rabbia
-    - irritazione
-    - alimentazione
-    - cibo
-    - dieta
-    - violenza
-    - abuso
-    - diabete
-    - glicemia alta
-    - peso
-    - sovrappeso
-    - obeso
-    - grasso
-    - aderenza_farmaci
-    - non prendo le medicine
-    - alcol
-    - bevande alcoliche
-    - fumo
-    - sigarette
-    - dipendenza
-    - dipendenze
-
-
-- synonym: ansia
-  examples: |
-    - ansioso
-    - agitazione
-
-- synonym: stress
-  examples: |
-    - stressato
-
-- synonym: autostima
-  examples: |
-    - insicurezza
-
-- synonym: rabbia
-  examples: |
-    - irritazione
-
-- synonym: alimentazione
-  examples: |
-    - cibo
-    - dieta
-
-- synonym: violenza
-  examples: |
-    - abuso
-
-- synonym: diabete
-  examples: |
-    - glicemia alta
-
-- synonym: peso
-  examples: |
-    - sovrappeso
-    - grasso
-    - obeso
-
-- synonym: aderenza_farmaci
-  examples: |
-    - non prendo le medicine
-
-- synonym: alcol
-  examples: |
-    - bevande alcoliche
-
-- synonym: fumo
-  examples: |
-    - sigarette
-
-- synonym: dipendenza
-  examples: |
-    - dipendenze

@@ -51,3 +51,9 @@ rules:
   steps:
     - intent: grazie
     - action: utter_prego
+
+- rule: Classifica topic da messaggio generico
+  steps:
+    - intent: messaggio_generico
+    - action: action_classifica_topic
+
