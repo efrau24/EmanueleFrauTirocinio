@@ -137,12 +137,8 @@ responses:
     - text: "Grazie mille {nome}! Ho registrato i tuoi dati. Come ti senti oggi?"
     - text: "Grazie {nome}. ho annotato le tue informazioni. Dimmi un po' come ti senti oggi."
   
-  
-  utter_raccogli_problema:
-    - text: "Raccontami cosa ti preoccupa."
-    - text: "Mi piacerebbe sapere cosa ti preoccupa."
-    - text: "C'è qualcosa in particolare che ti preoccupa o di cui vuoi parlare?"
- 
+
+
   utter_risposta_generica:
     - text: "Capisco. Fammi sapere come ti senti oggi."
 

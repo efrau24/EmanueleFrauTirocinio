@@ -42,7 +42,7 @@ rules:
 
 #regole di conversazione
 
-- rule: LLM fallback
+- rule: LLM fallback se non classificabile
   steps:
     - intent: nlu_fallback
     - action: action_llm_fallback
@@ -56,4 +56,6 @@ rules:
   steps:
     - intent: messaggio_generico
     - action: action_classifica_topic
+
+
 
