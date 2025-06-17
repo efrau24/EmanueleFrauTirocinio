@@ -1,23 +1,79 @@
 from typing import Any, Optional, Text, Dict, List
-from transformers import pipeline
 from rasa_sdk import Action, Tracker
 from rasa_sdk.executor import CollectingDispatcher
 from rasa_sdk.events import SlotSet, ActiveLoop
 from rasa_sdk.types import DomainDict
 from rasa_sdk.forms import FormValidationAction
+from sentence_transformers import SentenceTransformer
+from transformers import pipeline, BertTokenizer, BertForSequenceClassification
+import torch
 import requests
+import logging
 
-classifier = pipeline("zero-shot-classification",
-                      model="Jiva/xlm-roberta-large-it-mnli", device=0, use_fast=True)              
+logger = logging.getLogger(__name__)
+# Inzializzazione modelli 
+
+model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+
+# Classificatore zero-shot per l'analisi dei topic
+classifier = pipeline("zero-shot-classification", model="Jiva/xlm-roberta-large-it-mnli", device=0, use_fast=True)              
 
 candidate_labels = [
-    "ansia", "stress", "alimentazione", "peso",
-    "aderenza ai farmaci", "fumo", "alcol", 
-    "motivazione", "dipendenze", "autostima", 
+ "ansia", "stress", "alimentazione", "esercizio fisico", "peso",
+    "aderenza ai farmaci", "sonno", "fumo", "alcol", "relazioni", 
+    "motivazione", "dipendenze", "autostima", "insicurezza"
 ]
 
 
+# Azioni personalizzate
 
+
+
+class ActionClassificaTalkType(Action):
+
+    def name(self) -> Text:
+        return "action_classifica_talk_type"
+    
+    def __init__(self):
+        self.tokenizer = BertTokenizer.from_pretrained("./best_model")
+        self.model = BertForSequenceClassification.from_pretrained("./best_model")
+        self.model.eval()
+    
+    def run(self, dispatcher, tracker, domain):
+
+        user_message = tracker.latest_message.get("text")
+
+        model_inputs = self.tokenizer(
+        user_message, 
+        truncation=True, 
+        padding="max_length", 
+        max_length=128, 
+        return_tensors="pt"
+        )
+
+        with torch.no_grad():
+            outputs = self.model(**model_inputs)
+            logits = outputs.logits
+            predicted_label = torch.argmax(logits, dim=1).item()
+            prob = torch.softmax(logits, dim=1)[0][predicted_label].item()
+
+        if predicted_label == 0:
+            predicted_str = "change"
+            dispatcher.utter_message(text="Sono contento che tu sia motivato a cambiare!")
+        else:
+            predicted_str = "sustain"
+            dispatcher.utter_message(text="Capisco, a volte può sembrare difficile affrontare il cambiamento.")
+
+
+        logger.info(f"Testo utente: {user_message}")
+        logger.info(f"Etichetta predetta: {predicted_str}")
+        logger.info(f"Confidenza: {prob:.2f}")
+
+        return[SlotSet("talk_type", predicted_str)]
+    
+
+
+    
 class ActionClassificaTopic(Action):
 
     def name(self) -> Text:
@@ -38,7 +94,7 @@ class ActionClassificaTopic(Action):
 
         
         if score > 0.8:
-            dispatcher.utter_message(text=f"Ho capito che t'interessa discutere di {topic}.")
+            # dispatcher.utter_message(text=f"Ho capito che t'interessa discutere di {topic}.")
             
             if topic not in topics:
                 updated_topics = topics + [topic]
@@ -49,7 +105,7 @@ class ActionClassificaTopic(Action):
                 SlotSet("topic_list", updated_topics),
                 SlotSet("current_topic", topic)]
         else:
-            dispatcher.utter_message(text="Non sono sicuro di quale sia l'argomento, puoi spiegarmi meglio?")
+            dispatcher.utter_message(text="Non sono sicuro di quale sia il problema, puoi spiegarmi meglio?")
             return []
 
 

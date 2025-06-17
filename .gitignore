@@ -12,22 +12,39 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
-# File Rasa temporanei
+# File temporanei Rasa
 .rasa/
 results/
 *.db
 
-# Modelli Rasa 
+# Modelli addestrati
 models/
+best_model/
+*.tar.gz
 
-# File di log
+# Log e output training
+logs/
+training_results/
 *.log
+*.tfevents.*
+
+# Dataset (se grande o privato)
+data/*.csv
+AnnoMI-full.csv
+dataset_mi_clean.csv
+
+# Script temporanei o di test
+test_model.py
+graph.html
+dataset_script.py
 
 # Configurazioni locali/editor
 .vscode/
 .idea/
 *.swp
 *.bak
+*.tmp
+*.~*
 
 # File pip
 pip-log.txt
@@ -39,10 +56,6 @@ htmlcov/
 .nox/
 .pytest_cache/
 
-# File di backup
-*.~*
-*.tmp
-
-# SQLite o altri database temporanei
+# File database
 *.sqlite
 *.sqlite3

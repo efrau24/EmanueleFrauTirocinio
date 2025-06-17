@@ -5,8 +5,6 @@ intents:
   - arrivederci
   - umore_buono
   - umore_triste
-  - ambivalenza
-  - esprimi_problema
   - motivazione
   - nega
   - rifiuto
@@ -16,12 +14,16 @@ intents:
   - citta_utente
   - nlu_fallback
   - messaggio_generico
+  - obiettivo_salute
+  - richiesta_aiuto
+  - grazie
+  - messaggio_MI
 
 entities:
   - nome
   - eta
   - luogo
-  - atteggiamento
+  - obiettivo
   
 
 slots:
@@ -72,19 +74,13 @@ slots:
     mappings:
       - type: custom
 
-  atteggiamento:
-    type: categorical
+
+
+  talk_type:
+    type: text
     influence_conversation: true
-    values:
-      - positivo
-      - negativo
-      - neutro
-      - ambivalente
-    mappings: 
-      - type: from_entity
-        entity: atteggiamento
-
-
+    mappings:
+      - type: custom 
 
 
 forms:
@@ -96,12 +92,11 @@ forms:
 
 
 responses:
- 
+
   utter_saluto_iniziale:
     - text: "Ciao! Sono qui per supportarti. Prima di iniziare avrei bisogno delle tue informazioni personali."
     - text: "Salve! Sono qui per aiutarti. Prima di partire, avrei bisogno di alcune informazioni."
  
-
   utter_prego:
     - text: "Non c'è di che!"
     - text: "Non c'è bisogno di ringraziarmi, sono qui per aiutarti!"
@@ -137,7 +132,10 @@ responses:
     - text: "Grazie mille {nome}! Ho registrato i tuoi dati. Come ti senti oggi?"
     - text: "Grazie {nome}. ho annotato le tue informazioni. Dimmi un po' come ti senti oggi."
   
-
+  utter_arrivederci:
+    - text: "Arrivederci! Spero di risentirti presto"
+    - text: "Arrivederci! Per qualsiasi cosa, non esitare a contattarmi"
+    - text: "Arrivederci! Nel casp abbia bisogno di supporto, sono qui per te."
 
   utter_risposta_generica:
     - text: "Capisco. Fammi sapere come ti senti oggi."
@@ -146,6 +144,29 @@ responses:
     - text: "Va bene, nessun problema! Quando ti va di iniziare, non esitare a farmelo sapere."
     - text: "Nessun problema! Quando ti senti pronto, sono qui per aiutarti."
     - text: "Non preoccuparti! Io sono qui per supportarti quando sei pronto. Non esitare a contattarmi."
+
+  utter_umore_triste:
+    - text: "Mi dispiace sapere che non ti senti bene. Ti va di parlarne?"
+    - text: "Sono davvero dispiaciuto di sapere che ti senti giù. Ti va di condividere cosa ti preoccupa?"
+    - text: "Mi dispiace tanto. Se ti va, possiamo parlare di cosa ti preoccupa."
+    - text: "Mi dispiace sapere che ti senti triste. Ti va di vedere se possiamo trovare insieme una soluzione?"
+    - text: "Mi dispiace. Se ti va, possiamo capire insieme come migliorare la situazione."
+
+  utter_umore_buono:
+    - text: "Sono felice di sapere che ti senti bene! C'è qualcosa che ti piacerebbe condividere?"
+    - text: "È davvero bello sapere che ti senti bene! Se hai voglia di condividere qualcosa, sono qui per ascoltarti."
+    - text: "Sono contento! È importante sentirsi bene e positivi. Se vuoi parlare di qualcosa, sono qui per te."
+
+
+  utter_ask_topic:
+    - text: "Quale pensi sia il problema che ti preoccupa di più in questo momento?"
+    - text: "Che cosa ti preoccupa maggiormente in questo momento?"
+    - text: "C'è qualcosa di specifico che ti rende preoccupato?"
+
+  utter_ask_intensità:
+    - text: "Quanto ti preoccupa questo problema su una scala da 1 a 10?"
+    - text: "Quanto è intensa la tua preoccupazione riguardo a questo problema, da 1 a 10?"
+    - text: "Su una scala da 1 a 10, quanto ti preoccupa questo problema?"
 
 session_config:
   session_expiration_time: 60
@@ -158,3 +179,4 @@ actions:
   - action_saluto_personalizzato
   - action_submit_form_informazioni_utente
   - action_classifica_topic
+  - action_classifica_talk_type

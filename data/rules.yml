@@ -2,7 +2,7 @@ version: "3.1"
 
 rules:
 
-#regole di saluto
+# regole di saluto
 
 - rule: Saluto dopo completamento form
   condition:
@@ -12,8 +12,14 @@ rules:
     - intent: saluto
     - action: utter_saluto_personalizzato
 
+- rule: Risposta a arrivederci
+  steps:
+    - intent: arrivederci
+    - action: utter_arrivederci
 
-#regole form 
+
+
+# regole form 
 
 - rule: Avvia form all'inizio della conversazione
   steps:
@@ -23,7 +29,7 @@ rules:
     - action: form_informazioni_utente
     - active_loop: form_informazioni_utente
 
-- rule: Completamento del form
+- rule: Completamento form informazioni iniziali utente
   condition:
     - active_loop: form_informazioni_utente
   steps:
@@ -34,23 +40,22 @@ rules:
     - action: action_submit_form_informazioni_utente
 
 
+
 - rule: Utente rifiuta di dare informazioni
   steps:
     - intent: rifiuto
     - action: utter_ok_niente_domande
 
 
-#regole di conversazione
-
-- rule: LLM fallback se non classificabile
-  steps:
-    - intent: nlu_fallback
-    - action: action_llm_fallback
+# regole di conversazione
 
 - rule: Risposta a grazie
   steps:
     - intent: grazie
     - action: utter_prego
+
+
+# regole azioni personalizzate
 
 - rule: Classifica topic da messaggio generico
   steps:
@@ -58,4 +63,13 @@ rules:
     - action: action_classifica_topic
 
 
+- rule: LLM fallback se non classificabile
+  steps:
+    - intent: nlu_fallback
+    - action: action_llm_fallback
+
+- rule: Classifica talk type
+  steps:
+    - intent: messaggio_MI
+    - action: action_classifica_talk_type
 
