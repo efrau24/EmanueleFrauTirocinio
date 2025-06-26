@@ -9,6 +9,7 @@ from transformers import (
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 import pandas as pd
+import csv
 
 # =====================
 # 1. Caricamento e bilanciamento dataset
@@ -17,27 +18,38 @@ df = pd.read_csv("dataset_mi_clean.csv")
 change_df = df[df['label'] == 'change']
 sustain_df = df[df['label'] == 'sustain']
 
-# Oversampling della classe minoritaria
+# Oversampling di sustain
 sustain_oversampled = sustain_df.sample(len(change_df), replace=True, random_state=42)
 balanced_df = pd.concat([change_df, sustain_oversampled])
 
-# Mapping delle etichette in numeri
+# Mapping delle etichette 
 label_map = {'change': 0, 'sustain': 1}
 balanced_df['label'] = balanced_df['label'].map(label_map)
 
 # =====================
 # 2. Split in training e validation
 # =====================
-train_df, val_df = train_test_split(
+
+# Primo split: 80% train_val, 20% test
+train_val_df, test_df = train_test_split(
     balanced_df,
-    test_size=0.2,
+    test_size=0.3,
     stratify=balanced_df["label"],
     random_state=42
 )
 
+# Secondo split
+train_df, val_df = train_test_split(
+    train_val_df,
+    test_size=0.2,
+    stratify=train_val_df["label"],
+    random_state=42
+)
 # Conversione in Dataset Hugging Face
 train_dataset = Dataset.from_pandas(train_df).remove_columns("__index_level_0__").rename_column("label", "labels")
 val_dataset = Dataset.from_pandas(val_df).remove_columns("__index_level_0__").rename_column("label", "labels")
+test_dataset = Dataset.from_pandas(test_df).remove_columns("__index_level_0__").rename_column("label", "labels")
+
 
 # =====================
 # 3. Tokenizzazione
@@ -54,7 +66,10 @@ def tokenize_function(example):
 
 train_dataset = train_dataset.map(tokenize_function, batched=True)
 val_dataset = val_dataset.map(tokenize_function, batched=True)
+test_dataset = test_dataset.map(tokenize_function, batched=True)
 
+
+test_dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "labels"])
 train_dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "labels"])
 val_dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "labels"])
 
@@ -62,7 +77,7 @@ val_dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "la
 # 4. Definizione metrica
 # =====================
 def compute_metrics(eval_pred):
-    logits, labels = eval_p-red
+    logits, labels = eval_pred
     preds = logits.argmax(axis=-1)
     precision, recall, f1, _ = precision_recall_fscore_support(labels, preds, average='binary')
     acc = accuracy_score(labels, preds)
@@ -79,7 +94,7 @@ def compute_metrics(eval_pred):
 model = BertForSequenceClassification.from_pretrained("bert-base-multilingual-cased", num_labels=2)
 
 # =====================
-# 6. Argomenti di training
+# 6. Training 
 # =====================
 training_args = TrainingArguments(
     output_dir="./training_results",
@@ -97,9 +112,7 @@ training_args = TrainingArguments(
     greater_is_better=True
 )
 
-# =====================
-# 7. Trainer
-# =====================
+# Inizializzazione Trainer
 trainer = Trainer(
     model=model,
     args=training_args,
@@ -110,10 +123,27 @@ trainer = Trainer(
     callbacks=[EarlyStoppingCallback(early_stopping_patience=2)]
 )
 
-# =====================
-# 8. Training
-# =====================
+# Training
 trainer.train()
+
+# =====================
+# 7. Valutazione su test set
+# =====================
+
+metrics = trainer.evaluate(eval_dataset=test_dataset)
+print(metrics)
+
+with open("test_metrics.csv", "w", newline="") as f:
+    writer = csv.writer(f)
+    writer.writerow(metrics.keys())
+    writer.writerow(metrics.values())
+
+
+# =====================
+# 8. Salvataggio
+# =====================
+
+
 
 trainer.save_model("./best_model")    
 tokenizer.save_pretrained("./best_model")  

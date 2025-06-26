@@ -32,6 +32,7 @@ training_results/
 data/*.csv
 AnnoMI-full.csv
 dataset_mi_clean.csv
+test_metrics.csv
 
 # Script temporanei o di test
 test_model.py
