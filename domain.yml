@@ -1,65 +1,98 @@
 version: "3.1"
 
 intents:
-  - saluto
-  - arrivederci
-  - umore_buono
-  - umore_triste
-  - motivazione
-  - nega
-  - rifiuto
-  - conferma
-  - nome_utente
-  - eta_utente
-  - citta_utente
+  - greet
+  - goodbye
+  - good_mood
+  - sad_mood
+  - motivation
+  - deny
+  - reject
+  - affirm
+  - user_name
+  - user_age
+  - user_city
   - nlu_fallback
-  - messaggio_generico
-  - obiettivo_salute
-  - richiesta_aiuto
-  - grazie
-  - messaggio_MI
+  - generic_message
+  - health_goal
+  - help_request
+  - inform_occupation
+  - inform_interests
+  - inform_health_condition
+  - thank_you
+  - mi_message
 
 entities:
-  - nome
-  - eta
-  - luogo
-  - obiettivo
-  
+  - name
+  - age
+  - location
 
 slots:
 
-  conversazione_avviata:
+  conversation_started:
     type: bool
     initial_value: false
     influence_conversation: true
     mappings:
       - type: custom
 
-  form_completato:
+  form_completed:
     type: bool
     initial_value: false
     influence_conversation: true
     mappings:
       - type: custom
 
-  nome:
+  name:
     type: text
-    influence_conversation: true
+    influence_conversation: false
     mappings:
       - type: from_entity
-        entity: nome
-  eta:
+        entity: name
+        conditions:
+        - active_loop: user_info_form
+          requested_slot: name
+
+  age:
     type: text
-    influence_conversation: true
+    influence_conversation: false
     mappings:
       - type: from_entity
-        entity: eta
-  luogo:
+        entity: age
+        conditions:
+        - active_loop: user_info_form
+          requested_slot: age
+
+
+  occupation:
     type: text
-    influence_conversation: true
+    influence_conversation: false
     mappings:
-      - type: from_entity
-        entity: luogo
+      - type: custom
+        conditions:
+          - active_loop: user_info_form
+            requested_slot: occupation
+
+  interests:
+    type: list
+    influence_conversation: false
+    mappings:
+      - type: custom
+        conditions:
+          - active_loop: user_info_form
+            requested_slot: interests
+
+  
+  health_condition:
+    type: list
+    influence_conversation: false
+    mappings:
+      - type: custom
+        conditions:
+          - active_loop: user_info_form
+            requested_slot: health_condition
+
+
 
   topic_list:
     type: list
@@ -67,116 +100,151 @@ slots:
     mappings:
       - type: custom
 
-
   current_topic:
     type: text
     influence_conversation: true
     mappings:
       - type: custom
 
-
-
   talk_type:
     type: text
     influence_conversation: true
     mappings:
-      - type: custom 
-
+      - type: custom
 
 forms:
-  form_informazioni_utente:
+
+  user_info_form:
     required_slots:
-      - nome
-      - eta
-      - luogo
+      - name
+      - age
+      - occupation
+      - interests
+      - health_condition
 
 
 responses:
 
-  utter_saluto_iniziale:
-    - text: "Ciao! Sono qui per supportarti. Prima di iniziare avrei bisogno delle tue informazioni personali."
-    - text: "Salve! Sono qui per aiutarti. Prima di partire, avrei bisogno di alcune informazioni."
- 
-  utter_prego:
-    - text: "Non c'è di che!"
-    - text: "Non c'è bisogno di ringraziarmi, sono qui per aiutarti!"
-    - text: "È un piacere aiutarti! Non esitare a chiedere se hai bisogno di aiuto."
+  # First convo 
 
-  utter_saluto_personalizzato:
-    - text: "Ciao {nome}! Come ti senti oggi?"
-    - text: "Ciao {nome}! Spero tu stia bene. Come posso aiutarti oggi?"
-    - text: "Ciao {nome}! Sono qui per te. Come posso supportarti oggi?"
-  
+  utter_initial_greeting:
+  - text: "Hi!. Before we start, is this your first time talking with a chatbot?"
+  - text: "Hello! I'm here to help you. Before we begin, is this your first time chatting with a chatbot?"
+  - text: "Hi there! Is this your first conversation with a chatbot?"
+  - text: "Hello there! I'm here to support you. Before we move forward, is this your first time chatting with a chatbot?"
+  - text: "Hi there! Is this your first time chatting with a chatbot?"
+  - text: "Hello! I'm here to support you. Is this your first time speaking with a chatbot?"
 
-  utter_ask_nome:
-    - text: "Come ti chiami?"
-    - text: "Qual'è il tuo nome?"
-    - text: "Mi piacerebbe sapere innanzitutto il tuo nome."
-    - text: "Potrei sapere qual è il tuo nome?"
 
-  utter_ask_eta:
-    - text: "Quanti anni hai?"
-    - text: "Qual è la tua età?"
-    - text: "Mi piacerebbe sapere quanti anni hai."
-    - text: "Potrei sapere quanti anni hai?"
+  utter_first_time_info:
+    - text: |
+        Hello and welcome! I'm a chatbot designed to support mental health and promote positive behavior change. 
+        While I can offer emotional support and helpful guidance, I'm not a licensed therapist and do not replace professional mental health care. 
+        If you're in crisis or need immediate help, please contact a mental health professional or emergency services. 
+        Let's begin with some basic information about you.
+    - text: |
+        Great! I'm a mental health and behavior change support chatbot. I'm here to listen, guide, and help you reflect on your thoughts and actions. 
+        Keep in mind that I'm not a licensed therapist and I don't replace professional care. 
+        If you're facing a crisis, please reach out to a qualified mental health professional or emergency services. 
+        Let's get started by collecting some basic personal information.
+    - text: |
+        Nice to meet you! I'm a chatbot here to support your mental well-being and help you with positive behavior changes. 
+        I can offer guidance and support, but I'm not a licensed therapist and should not replace professional mental health care. 
+        If you're in crisis or need urgent help, please contact a mental health professional or emergency services. 
+        To begin, I'd like to ask you a few questions about yourself.
+    
+  utter_info:
+    - text: |
+        I'm here to support you with mental health and behavior change. I can listen, provide guidance, and help you reflect on your thoughts and actions.
+        However, I'm not a licensed therapist and don't replace professional care. If you're in crisis or need immediate help, 
+        please contact a mental health professional or emergency services.
 
-  utter_ask_luogo:
-    - text: "Da dove vieni?"
-    - text: "Qual è la tua città di provenienza?"
-    - text: "Mi piacerebbe sapere da dove vieni."
-    - text: "Potrei sapere da dove vieni?"
+  utter_ask_name:
+    - text: "Can I ask your name?"
+    - text: "What should I call you?"
+    - text: "I'd love to know your name so I can talk to you more personally."
 
+  utter_ask_age:
+    - text: "How old are you?"
+    - text: "I'd like to know how old you are."
+    - text: "Would you mind telling me your age?"
+
+
+  utter_ask_occupation:
+    - text: "What do you do for work or study?"
+    - text: "Can you tell me a bit about what you do in your daily life?"
+    - text: "I'd love to hear about what you do for a living or what keeps you busy."
+
+  utter_ask_interests:
+    - text: "What kinds of things do you enjoy doing in your free time?"
+    - text: "Do you have any hobbies or interests you'd like to share?"
+    - text: "What brings you joy or helps you relax when you're not working or studying?"
+
+  utter_ask_health_condition:
+    - text: "How would you describe your current health condition?"
+    - text: "Can you tell me about your health condition?"
+    - text: "What health issues, if any, are you currently facing?"
 
   utter_submit:
-    - text: "Grazie {nome}! Ho salvato le tue informazioni. Raccontami un po' di come ti senti oggi."
-    - text: "Grazie mille {nome}! Ho registrato i tuoi dati. Come ti senti oggi?"
-    - text: "Grazie {nome}. ho annotato le tue informazioni. Dimmi un po' come ti senti oggi."
-  
-  utter_arrivederci:
-    - text: "Arrivederci! Spero di risentirti presto"
-    - text: "Arrivederci! Per qualsiasi cosa, non esitare a contattarmi"
-    - text: "Arrivederci! Nel casp abbia bisogno di supporto, sono qui per te."
+    - text: "Thanks, {name}! I've saved your information. How are you feeling right now?"
+    - text: "Thank you, {name}. I've got your details. How are you doing today?"
+    - text: "Thanks for sharing that with me, {name}. How are you feeling at the moment?"
 
-  utter_risposta_generica:
-    - text: "Capisco. Fammi sapere come ti senti oggi."
 
-  utter_ok_niente_domande:
-    - text: "Va bene, nessun problema! Quando ti va di iniziare, non esitare a farmelo sapere."
-    - text: "Nessun problema! Quando ti senti pronto, sono qui per aiutarti."
-    - text: "Non preoccuparti! Io sono qui per supportarti quando sei pronto. Non esitare a contattarmi."
+  utter_personalized_greeting:
+    - text: "Hi {name}! How are you feeling today?"
+    - text: "Hi {name}! I hope you're doing well. How can I help you today?"
+    - text: "Hi {name}! I'm here for you. How can I support you today?"
 
-  utter_umore_triste:
-    - text: "Mi dispiace sapere che non ti senti bene. Ti va di parlarne?"
-    - text: "Sono davvero dispiaciuto di sapere che ti senti giù. Ti va di condividere cosa ti preoccupa?"
-    - text: "Mi dispiace tanto. Se ti va, possiamo parlare di cosa ti preoccupa."
-    - text: "Mi dispiace sapere che ti senti triste. Ti va di vedere se possiamo trovare insieme una soluzione?"
-    - text: "Mi dispiace. Se ti va, possiamo capire insieme come migliorare la situazione."
+  utter_goodbye:
+    - text: "Goodbye! Hope to talk to you again soon."
+    - text: "Goodbye! If you need anything, don’t hesitate to reach out."
+    - text: "Goodbye! If you ever need support, I’m here for you."
 
-  utter_umore_buono:
-    - text: "Sono felice di sapere che ti senti bene! C'è qualcosa che ti piacerebbe condividere?"
-    - text: "È davvero bello sapere che ti senti bene! Se hai voglia di condividere qualcosa, sono qui per ascoltarti."
-    - text: "Sono contento! È importante sentirsi bene e positivi. Se vuoi parlare di qualcosa, sono qui per te."
+  utter_generic_response:
+    - text: "I understand. Let me know how you're feeling today."
 
+  utter_ok_no_questions:
+    - text: "That's totally okay. I'm here whenever you feel ready to talk."
+    - text: "No problem at all—take your time. I'll be here when you're ready."
+
+  utter_sad_mood:
+    - text: "I'm sorry to hear you're not feeling well. Would you like to talk about it?"
+    - text: "I'm really sorry to hear you're feeling down. Do you want to share what's bothering you?"
+    - text: "I'm really sorry. If you'd like, we can talk about what's worrying you."
+    - text: "I'm sorry to hear you're feeling sad. Would you like to explore together how to improve the situation?"
+    - text: "I'm sorry. If you're open to it, we can try to figure out how to make things better."
+
+  utter_good_mood:
+    - text: "I'm happy to hear you're feeling good! Is there anything you'd like to share?"
+    - text: "It’s really nice to hear you're doing well! If you feel like sharing something, I’m here to listen."
+    - text: "I'm glad! It's important to feel good and positive. If you'd like to talk, I'm here for you."
 
   utter_ask_topic:
-    - text: "Quale pensi sia il problema che ti preoccupa di più in questo momento?"
-    - text: "Che cosa ti preoccupa maggiormente in questo momento?"
-    - text: "C'è qualcosa di specifico che ti rende preoccupato?"
+    - text: "What do you think is the main issue troubling you right now?"
+    - text: "What's worrying you the most at the moment?"
+    - text: "Is there something specific that’s making you feel worried?"
 
-  utter_ask_intensità:
-    - text: "Quanto ti preoccupa questo problema su una scala da 1 a 10?"
-    - text: "Quanto è intensa la tua preoccupazione riguardo a questo problema, da 1 a 10?"
-    - text: "Su una scala da 1 a 10, quanto ti preoccupa questo problema?"
+  utter_ask_intensity:
+    - text: "On a scale from 1 to 10, how much does this problem worry you?"
+    - text: "How intense is your concern about this problem, from 1 to 10?"
+    - text: "How worried are you about this problem, from 1 to 10?"
+
+  utter_you_are_welcome:
+    - text: "You're welcome! I'm here to help you."
 
 session_config:
   session_expiration_time: 60
   carry_over_slots_to_new_session: true
 
-
 actions: 
   - action_llm_fallback
-  - action_conversazione_avviata
-  - action_saluto_personalizzato
-  - action_submit_form_informazioni_utente
-  - action_classifica_topic
-  - action_classifica_talk_type
+  - action_conversation_started
+  - action_personalized_greeting
+  - action_submit_user_info_form
+  - action_classify_topic
+  - action_classify_talk_type
+  - action_classify_user_occupation
+  - action_classify_user_interests
+  - action_classify_user_health_condition
+  - validate_user_info_form

@@ -2,74 +2,79 @@ version: "3.1"
 
 rules:
 
-# regole di saluto
+# greeting rules
 
-- rule: Saluto dopo completamento form
+- rule: Greet after form completion
   condition:
     - slot_was_set:
-        - form_completato: true
+        - form_completed: true
   steps:
-    - intent: saluto
-    - action: utter_saluto_personalizzato
+    - intent: greet
+    - action: utter_personalized_greeting
 
-- rule: Risposta a arrivederci
+- rule: Respond to goodbye
   steps:
-    - intent: arrivederci
-    - action: utter_arrivederci
+    - intent: goodbye
+    - action: utter_goodbye
 
+# form rules
 
-
-# regole form 
-
-- rule: Avvia form all'inizio della conversazione
-  steps:
-    - intent: saluto
-    - action: utter_saluto_iniziale
-    - action: action_conversazione_avviata
-    - action: form_informazioni_utente
-    - active_loop: form_informazioni_utente
-
-- rule: Completamento form informazioni iniziali utente
+- rule: User info form completion
   condition:
-    - active_loop: form_informazioni_utente
+    - active_loop: user_info_form
   steps:
-    - action: form_informazioni_utente
+    - action: user_info_form
     - active_loop: null
     - slot_was_set:
         - requested_slot: null
-    - action: action_submit_form_informazioni_utente
+    - action: action_submit_user_info_form
 
 
-
-- rule: Utente rifiuta di dare informazioni
+- rule: Classify user occupation
   steps:
-    - intent: rifiuto
-    - action: utter_ok_niente_domande
+    - intent: inform_occupation
+    - action: action_classify_user_occupation
 
-
-# regole di conversazione
-
-- rule: Risposta a grazie
+- rule: Classify user interests
   steps:
-    - intent: grazie
-    - action: utter_prego
+    - intent: inform_interests
+    - action: action_classify_user_interests
 
-
-# regole azioni personalizzate
-
-- rule: Classifica topic da messaggio generico
+- rule: Classify user health condition
   steps:
-    - intent: messaggio_generico
-    - action: action_classifica_topic
+    - intent: inform_health_condition
+    - action: action_classify_user_health_condition
 
+- rule: User refuses to provide information
+  steps:
+    - intent: reject
+    - action: utter_ok_no_questions
 
-- rule: LLM fallback se non classificabile
+# conversation rules
+
+- rule: Respond to thank you
+  steps:
+    - intent: thank_you
+    - action: utter_you_are_welcome
+
+- rule: Respond_to_ask_about_chatbot
+  steps:
+    - intent: ask about chatbot
+    - action: utter_info
+
+# custom action rules
+
+- rule: Classify topic from generic message
+  steps:
+    - intent: generic_message
+    - action: action_classify_topic
+
+- rule: LLM fallback if not classifiable
   steps:
     - intent: nlu_fallback
     - action: action_llm_fallback
 
-- rule: Classifica talk type
+- rule: Classify talk type
   steps:
-    - intent: messaggio_MI
-    - action: action_classifica_talk_type
-
+    - intent: mi_message
+    - action: action_classify_talk_type

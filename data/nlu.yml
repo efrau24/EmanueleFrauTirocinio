@@ -1,207 +1,329 @@
 version: "3.1"
 
-
 nlu:
 
-# normale conversazione
-- intent: saluto
+# general conversation
+- intent: greet
   examples: |
-    - Ciao
-    - Salve
-    - Buonasera
-    - Buonpomeriggio 
-    - Salve
-    - Buongiorno, chatbot
-    - Ciao
-    - Buongiorno
-    - Ehi!
+    - Hi
+    - Hello
+    - Good evening
+    - Good afternoon
+    - Hello there
+    - Good morning, chatbot
     - Hey
+    - Hi there
+    - Hey!
+    - Hello!
 
-- intent: grazie
+- intent: thank_you
   examples: |
-    - Grazie
-    - Ti ringrazio
-    - Grazie mille
-    - Grazie per l'aiuto
-    - Grazie del supporto
+    - Thank you
+    - I appreciate it
+    - Thanks a lot
+    - Thank you for your help
+    - Thanks for the support
 
-- intent: arrivederci
+- intent: goodbye
   examples: |
-    - Ciao, a presto
-    - Arrivederci
-    - A dopo
-    - Buona giornata
-    - A domani
-    - Buona serata
-    - Ci vediamo
-    - A più tardi
-    - A presto
-    - Ci sentiamo
-    - Devo andare
+    - Bye, see you soon
+    - Goodbye
+    - See you later
+    - Have a nice day
+    - Talk to you tomorrow
+    - Have a good evening
+    - See you
+    - Talk later
+    - See you soon
+    - Talk to you later
+    - I have to go
 
-
-
-- intent: nega
+- intent: deny
   examples: |
     - No
-    - No grazie
-    - Non ora
-    - Preferisco di no
+    - No thanks
+    - Not now
+    - I’d rather not
 
-- intent: conferma
+- intent: affirm
   examples: |
-    - Sì
-    - Certo
-    - Va bene
-    - Assolutamente
-    - Si, va bene
-    - Si, certo
-    - Certamente
-    - Ok
-    - D'accordo
+    - Yes
+    - Sure
+    - Alright
+    - Absolutely
+    - Yes, that’s fine
+    - Yes, of course
+    - Certainly
+    - Okay
+    - Alright then
+    - That's right
 
 
-# informazioni utente
+- intent: ask_about_chatbot
+  examples: |
+    - What can you do?
+    - What are your capabilities?
+    - What can you help me with?
+    - What can you do for me?
+    - What are you capable of?
 
-- intent: nome_utente
+# user information
+
+- intent: user_name
   examples: | 
-    - Mi chiamo [Emanuele](nome)
-    - Sono [Emanuele](nome)
-    - Il mio nome è [Emanuele](nome)
-    - [Emanuele](nome)
-    - Mi chiamo [Luca](nome) 
-    - Sono [Giulia](nome)
-    - Il mio nome è [Alessandro](nome)
-    - [Chiara](nome)
-    - Mi chiamo [Marco](nome)
-    - Sono [Anna](nome)
+    - My name is [Emanuele](name)
+    - I am [Emanuele](name)
+    - My name's [Emanuele](name)
+    - [Emanuele](name)
+    - My name is [Luca](name) 
+    - I’m [Giulia](name)
+    - My name is [Alessandro](name)
+    - [Chiara](name)
+    - My name is [Marco](name)
+    - I’m [Anna](name)
 
-
-- intent: eta_utente
+- intent: user_age
   examples: | 
-    - Ho [30](eta) anni
-    - [30](eta)
-    
-
-- intent: citta_utente
-  examples: | 
-    - Vengo da [Milano](luogo)
-    - Sono di [Roma](luogo)
-    - [San Gavino](luogo)  
-    - Vengo da [Cagliari](luogo)
-    - Sono di [Torino](luogo)
-    - [Sanluri](luogo)  
+    - I’m [30](age) years old
+    - [43](age)
+    - I am [60](age)
+    - I'm [23](age)
 
 
-# emozioni e stati d'animo
 
-- intent: rifiuto 
+# emotions and mood
+
+- intent: reject 
   examples: |
-    - Non voglio dare informazioni
-    - Non voglio parlarne
-    - Non mi va
-    - Non mi va di parlarne
-    - Non voglio rispondere
-    - Non voglio parlare di me
-    - Ora non voglio parlarne
-    - Non voglio condividere informazioni
-    - Non voglio dire il mio nome
-    - Non voglio dire la mia età
-    - Non voglio dire da dove vengo
-    - Non voglio parlare di me stesso
-    - Non voglio condividere dettagli personali
+    - I don't want to give information
+    - I don't want to talk about it
+    - I don't feel like it
+    - I don’t feel like talking
+    - I don't want to answer
+    - I don't want to talk about myself
+    - I don't want to talk with you
+    - I don’t want to talk about it right now
+    - I don't want to share information
+    - I don't want to say my name
+    - I don't want to say my age
+    - I don't want to say where I'm from
+    - I don't want to talk about myself
+    - I don't want to share personal details
 
-
-
-- intent: umore_buono
+- intent: good_mood
   examples: |
-    - Sto bene oggi
-    - Mi sento felice
-    - Sono felice
-    - Oggi sono di buon umore
-    - Oggi va tutto bene
-    - Mi sento bene 
-    - Sto bene
-    - Mi sento positivo
+    - I feel good today
+    - I feel happy
+    - I’m happy
+    - I'm in a good mood today
+    - Everything is fine today
+    - I feel well
+    - I’m doing well
+    - I feel positive
 
-- intent: umore_triste
+- intent: sad_mood
   examples: |
-    - Sono giù
-    - Non sto bene
-    - Sto male
-    - Mi sento triste
-    - Mi sento depresso
+    - I’m feeling down
+    - I’m not well
+    - I feel bad
+    - I feel sad
+    - I feel depressed
 
-
-- intent: motivazione
+- intent: motivation
   examples: |
-    - Voglio cambiare
-    - Mi impegno per migliorare
+    - I want to change
+    - I’m committed to improving
 
-- intent: messaggio_generico
+- intent: generic_message
   examples: |
-    - Mi sento strano ultimamente
-    - Sono molto ansioso
-    - Sono molto stressato
-    - Non mi sento sicuro di me stesso
-    - Ho problemi di autostima
-    - Ho problemi con il cibo 
-    - Non mi sento a mio agio con il mio corpo 
-    - Non sto bene con me stesso 
-    - Ci sono cose che vorrei cambiare
-    - Oggi mi sento molto giù
-    - Vorrei essere più felice
+    - I’ve been feeling weird lately
+    - I’m very anxious
+    - I’m really stressed
+    - I don't feel confident
+    - I have self-esteem issues
+    - I have problems with food
+    - I don’t feel comfortable with my body
+    - I’m not okay with myself
+    - There are things I’d like to change
+    - I’m feeling really down today
+    - I wish I were happier
 
-- intent: richiesta_aiuto
+- intent: inform_occupation
+  examples: |
+    - I'm a student
+    - I study
+    - I study at the university
+    - I study Computer Science
+    - I work as a teacher
+    - I work
+    - I am a freelancer
+    - I'm currently doing my PhD
+    - I'm in high school
+    - I work as a freelancer
+    - I do freelance work online
+    - I'm self-employed
+    - I run my own business
+    - I'm an entrepreneur
+    - I work full-time
+    - I have a part-time job
+    - I'm a software engineer
+    - I'm a teacher
+    - I work in education
+    - I woek as a developer
+    - I work in finance
+    - I'm in marketing
+    - I have a job in tech
+    - I’m currently unemployed
+    - I lost my job recently
+    - I’m looking for work
+    - I’ve been job hunting
+    - I'm retired
+    - I no longer work
+    - I’m a stay-at-home mom
+    - I’m a stay-at-home dad
+    - I take care of the house
+    - I’m not working right now
+    - I’m between jobs
+    - I volunteer at a local organization
+    - I work remotely
+    - I do consulting work
+
+
+- intent: inform_interests
+  examples: |
+    - I like sports
+    - I enjoy reading
+    - I love music
+    - I’m into technology
+    - I enjoy cooking
+    - I like photography
+    - I'm passionate about art
+    - I play video games
+    - I’m into traveling
+    - I enjoy watching movies
+    - I go hiking on weekends
+    - I love painting and drawing
+    - I'm really into fitness
+    - I do yoga regularly
+    - I like writing short stories
+    - I’m interested in psychology
+    - I love learning new languages
+    - I'm a big fan of cinema
+    - I enjoy gardening
+    - I spend time gaming online
+    - I like to go biking
+    - I collect books
+    - I'm into fashion and style
+    - I enjoy DIY projects
+    - I follow science news
+    - I love dancing
+    - I play guitar in my free time
+    - I like going to concerts
+    - I'm into coding
+    - I enjoy building things
+    - I’m interested in astronomy
+    - I listen to a lot of podcasts
+    - I like exploring new cultures
+    - I don’t have any specific interests
+    - I don’t know what I like
+    - I’m not sure about my interests
+
+
+
+- intent: inform_health_condition
+  examples: |
+    - I have anxiety
+    - I am an anxious person
+    - I am dealing with anxiety
+    - I struggle with depression
+    - I have a chronic illness
+    - I have a health condition
+    - I’m dealing with stress
+    - I have a medical condition
+    - I have a mental health issue
+    - I'm feeling really anxious lately
+    - I've been diagnosed with bipolar disorder
+    - I'm going through burnout
+    - I suffer from panic attacks
+    - I live with chronic pain
+    - I was recently diagnosed with diabetes
+    - I'm recovering from a surgery
+    - I have trouble sleeping due to anxiety
+    - I've been feeling depressed for a while
+    - I have PTSD
+    - I’ve been managing my asthma for years
+    - I have high blood pressure
+    - I’m dealing with addiction
+    - I’ve been feeling emotionally exhausted
+    - My depression is getting worse
+    - I have an eating disorder
+    - I’m trying to cope with grief
+    - I’ve been under a lot of stress
+    - I'm struggling with my mental health
+    - I have OCD
+    - I was recently diagnosed with a neurological condition
+    - My anxiety is affecting my daily life
+    - I’ve been experiencing chronic fatigue
+    - I have a disability
+    - I’m struggling to manage my health condition
+    - I was told I might have ADHD
+    - I’ve been having frequent migraines
+    - I’m recovering from a long illness
+    - I think I might be depressed
+    - I have some health issues I’m trying to manage
+    - I’ve been feeling overwhelmed all the time
+    - I don't have any health issues
+    - I’m generally healthy
+    - I don’t have any medical conditions
+    - I’m not dealing with any health problems
+
+- intent: help_request
   examples: |    
-    - Vorrei parlare con qualcuno
-    - Ho bisogno di aiuto 
-    - Ho bisogno di supporto
-    - Ho bisogno di qualcuno con cui parlare
-    - Ho biosngo che qualcuno mi ascolti 
-    - Ho bisogno di qualcuno che mi aiuti 
-    - Ho bisogno di supporto 
+    - I’d like to talk to someone
+    - I need help
+    - I need support
+    - I need someone to talk to
+    - I need someone to listen
+    - I need someone to help me
+    - I need support
 
-
-- intent: obiettivo_salute
+- intent: health_goal
   examples: |
-    - Voglio perdere peso
-    - Vorrei iniziare a mangiare meglio
-    - Vorrei fare più esercizio
-    - Vorrei essere più sicuro di me stesso
-    - Vorrei smettere di fumare
-    - Vorrei smettere di bere
-    - Voglio migliorare la mia autostima
-    - Voglio stare meglio 
-    - Voglio essere più felice 
-    - Voglio essere più motivato
-    - Mi piacerebbe smettere di fumare
-    - Vorrei smettere di rimuginare
+    - I want to lose weight
+    - I’d like to start eating better
+    - I’d like to exercise more
+    - I want to feel more confident
+    - I want to quit smoking
+    - I want to stop drinking
+    - I want to improve my self-esteem
+    - I want to feel better
+    - I want to be happier
+    - I want to feel more motivated
+    - I’d like to quit smoking
+    - I’d like to stop overthinking
 
-
-
-- intent: messaggio_MI
+- intent: mi_message
   examples: | 
-    - Non voglio cambiare, vado bene così
-    - Non mi va di cambiare
-    - Non mi va di migliorare
-    - Non sono pronto a cambiare
-    - Non devo cambiare
-    - Non ho niente da cambiare
-    - Non ho niente da migliorare
-    - Dovrei cambiare, ma non mi va
-    - Devo cambiare
-    - Forse è il momento di cambiare
-    - Voglio migliorare
-    - Sono motivato a cambiare
-    - Sono motivato a migliorare
-    - Devo migliorare
-    - Non posso continuare così
-    - Non posso andare avanti così
+    - I don’t want to change, I’m fine as I am
+    - I don’t feel like changing
+    - I don’t want to improve
+    - I’m not ready to change
+    - I don’t need to change
+    - There’s nothing I need to change
+    - I have nothing to improve
+    - I should change, but I don’t feel like it
+    - I need to change
+    - Maybe it’s time to change
+    - I want to improve
+    - I’m motivated to change
+    - I’m motivated to improve
+    - I need to improve
+    - I can’t keep going like this
+    - I can’t go on like this
 
-# tabelle di lookup
+# lookup tables
 
-- lookup: nome
+- lookup: user_name
   examples: |
     - Emanuele
     - Luca
@@ -220,3 +342,6 @@ nlu:
     - Sofia
     - Lorenzo
     - Giulia
+    - Marco
+    - Elena
+    - Andrea

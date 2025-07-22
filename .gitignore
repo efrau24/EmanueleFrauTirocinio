@@ -25,19 +25,20 @@ best_model/
 # Log e output training
 logs/
 training_results/
+training_results_2/
 *.log
 *.tfevents.*
 
 # Dataset (se grande o privato)
 data/*.csv
 AnnoMI-full.csv
-dataset_mi_clean.csv
+dataset_mi_changevstalk.csv
+dataset_mi_neutral.csv
 test_metrics.csv
 
+
 # Script temporanei o di test
-test_model.py
-graph.html
-dataset_script.py
+test_scripts/
 
 # Configurazioni locali/editor
 .vscode/
@@ -60,3 +61,4 @@ htmlcov/
 # File database
 *.sqlite
 *.sqlite3
+

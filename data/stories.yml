@@ -2,3 +2,12 @@ version: "3.1"
 
 stories:
 
+- story: Inform user about the chatbot role
+  steps:
+    - intent: greet
+    - action: utter_initial_greeting 
+    - intent: affirm
+    - action: utter_first_time_info
+    - action: user_info_form
+    - active_loop: user_info_form
+
