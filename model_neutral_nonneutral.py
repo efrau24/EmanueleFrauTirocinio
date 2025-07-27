@@ -99,7 +99,7 @@ model = RobertaForSequenceClassification.from_pretrained("roberta-base", num_lab
 # =====================
 training_args = TrainingArguments(
     output_dir="./results/neutral_non_neutral/checkpoints",
-    eval_strategy="epoch",
+    evaluation_strategy="epoch",
     save_strategy="epoch",
     learning_rate=2e-5,
     per_device_train_batch_size=16,

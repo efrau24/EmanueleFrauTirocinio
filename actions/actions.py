@@ -73,7 +73,7 @@ occupations = [
     "Forestry worker", "Landscape designer", "Environmental consultant", "Park ranger",
     "Zookeeper",
     "Customer service agent", "Waiter", "Barista", "Chef", "Cook", "Cashier",
-    "Retail worker", "Janitor", "Security guard",
+    "Retail worker", "Janitor", "Security guard", "Bartender",
     "Babysitter", "Pet sitter", "Dog walker", "Housekeeper", "Personal trainer",
     "Fitness coach", "Yoga instructor", "Life coach", "Motivational speaker",
     "Spiritual advisor", "Psychic", "Magician", "Model", "Escort", "Club promoter",
@@ -82,22 +82,33 @@ occupations = [
     "School principal", "Academic advisor", "Test prep tutor", "Language teacher",
     "Early childhood educator", "Training specialist",
     "Student (generic)", "Job seeker", "Gig worker", "Remote worker", "Digital nomad",
-    "No occupation", "Prefer not to say", "Other"
+    "No occupation", "Prefer not to say", 
 ]
 
-instruction_occ = "Represent this occupation category:"
+instruction_occ = "Occupation category:"
 occupation_embeddings = model.encode([[instruction_occ, occ] for occ in occupations], convert_to_tensor=True)
 
-def classify_occupation_instructor(user_input, threshold):
-    user_embedding = model.encode([["Represent the occupation of this person:", user_input]], convert_to_tensor=True)[0]
-    cosine_scores = util.cos_sim(user_embedding, occupation_embeddings)[0]
-    best_idx = cosine_scores.argmax().item()
-    best_score = cosine_scores[best_idx].item()
+def classify_occupations_instructor(user_input, threshold=0.4, top_k=None):
 
-    if best_score >= threshold:
-        return occupations[best_idx]
-    else:
-        return "Other"
+    user_embedding = model.encode(
+        [["What are the occupations of this person?:", user_input]], 
+        convert_to_tensor=True
+    )[0]
+
+    cosine_scores = util.cos_sim(user_embedding, occupation_embeddings)[0]
+
+    occupation_score_pairs = [
+        (occupations[i], float(score)) 
+        for i, score in enumerate(cosine_scores) 
+        if score >= threshold
+    ]
+
+    occupation_score_pairs.sort(key=lambda x: x[1], reverse=True)
+
+    if top_k is not None:
+        occupation_score_pairs = occupation_score_pairs[:top_k]
+
+    return [label for label, score in occupation_score_pairs] if occupation_score_pairs else ["Other"]
 
 
 
@@ -175,12 +186,12 @@ common_health_labels_en = [
     "burnout", "loneliness", "obsessive-compulsive disorder (OCD)", "post-traumatic stress disorder (PTSD)",
     "social anxiety disorder", "bipolar disorder", "borderline personality disorder", "repressed anger", 
     "procrastination", "adjustment disorder", "emotional dependency", "binge eating disorder", 
-    "emotional eating", "relationship difficulties", "obesity", "overweight", "hypertension", 
-    "type 2 diabetes", "high cholesterol", "thyroid problems", "chronic back pain", "joint pain", "asthma",
+    "emotional eating", "relationship difficulties", "obesity", "overweight", "anorexia", "hypertension", 
+    "diabetes", "high cholesterol", "thyroid problems", "chronic back pain", "joint pain", "asthma",
     "heart problems", "chronic pain", "poor nutrition", "physical inactivity", "tooth decay", "migraine", 
-    "chronic insomnia", "persistent fatigue", "metabolic syndrome", "food intolerances", "insomnia",
-    "chronic stress", "substance abuse", "alcoholism", "smoking", "drug addiction", 
-    "gambling addiction", "internet addiction", "social media addiction", "good overall health", "no major health problems"
+    "persistent fatigue", "metabolic syndrome", "food intolerances", "chronic stress", "substance abuse", 
+    "alcoholism", "smoking", "drug addiction", "gambling addiction", "internet addiction", 
+    "social media addiction", "good overall health", "no major health problems"
 ]
 
 intruction_health = "Represent this health condition category:"
@@ -211,6 +222,38 @@ def classify_health_condition_instructor(user_input, threshold=0.8, top_k=None):
 
 
 
+lifestyle_labels = [
+    "sedentary", "active", "busy", "stressful", "healthy", 
+    "unhealthy", "irregular","balanced", "routine", "unstructured"
+]
+
+
+intruction_lifestyle = "Lifestyle category:"
+lifestyle_embeddings = model.encode([[intruction_lifestyle, label] for label in lifestyle_labels], convert_to_tensor=True)
+
+def classify_lifestyle_instructor(user_input, threshold=0.8, top_k=None):
+
+    user_embedding = model.encode(
+        [["Represent the lifestyle of this person:", user_input]], 
+        convert_to_tensor=True
+    )[0]
+
+    cosine_scores = util.cos_sim(user_embedding, lifestyle_embeddings)[0]
+
+    lifestyle_score_pairs = [
+        (lifestyle_labels[i], float(score)) 
+        for i, score in enumerate(cosine_scores) 
+        if score >= threshold
+    ]
+
+    lifestyle_score_pairs.sort(key=lambda x: x[1], reverse=True)
+
+    if top_k is not None:
+        lifestyle_score_pairs = lifestyle_score_pairs[:top_k]
+
+    return [label for label, score in lifestyle_score_pairs] if lifestyle_score_pairs else ["Other"]
+
+
 
 classifier = pipeline(
     "zero-shot-classification",
@@ -227,7 +270,7 @@ candidate_labels = [
 
   
 
-# Azioni personL
+# Azioni personalizzate per Rasa
 
 class ActionClassifyTalkType(Action):
 
@@ -285,7 +328,7 @@ class ActionClassifyUserOccupation(Action):
 
         user_message = tracker.latest_message.get("text")
 
-        occupation = classify_occupation_instructor(user_message, threshold=0.5)
+        occupation = classify_occupations_instructor(user_message, threshold=0.8, top_k=2)
 
         
         return [SlotSet("occupation", occupation)]
@@ -324,6 +367,25 @@ class ActionClassifyUserHealthCondition(Action):
 
         
         return [SlotSet("health_condition", selected_health_labels)]
+
+
+
+class ActionClassifyUserLifestyle(Action):
+
+    def name(self) -> Text:
+        return "action_classify_user_lifestyle"
+    
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+
+        user_message = tracker.latest_message.get("text")
+
+        selected_lifestyle_labels = classify_lifestyle_instructor(user_message, threshold=0.8, top_k=2)
+
+        
+        return [SlotSet("lifestyle", selected_lifestyle_labels)]
+
 
 
 
@@ -464,7 +526,7 @@ class ValidateUserInfoForm(FormValidationAction):
         domain: Dict[Text, Any],
     ) -> Dict[Text, Any]:
 
-        # Validazione semplice: nome non vuoto e stringa
+        
         if isinstance(slot_value, str) and slot_value.strip():
             return {"name": slot_value.strip()}
         else:

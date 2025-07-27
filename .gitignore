@@ -31,11 +31,7 @@ training_results_2/
 
 # Dataset (se grande o privato)
 data/*.csv
-AnnoMI-full.csv
-dataset_mi_changevstalk.csv
-dataset_mi_neutral.csv
-test_metrics.csv
-
+datasets/
 
 # Script temporanei o di test
 test_scripts/

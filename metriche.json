@@ -1,0 +1,14 @@
+{
+    "model1": {
+        "eval_accuracy": 0.6782786885245902,
+        "eval_precision": 0.6781645303330308,
+        "eval_recall": 0.6782786885245902,
+        "eval_f1": 0.6782187594040484
+    },
+    "model2_filtered": {
+        "eval_accuracy": 0.7297297297297297,
+        "eval_precision": 0.7200404065392624,
+        "eval_recall": 0.7297297297297297,
+        "eval_f1": 0.7201315239289922
+    }
+}

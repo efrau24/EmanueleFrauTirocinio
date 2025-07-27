@@ -6,15 +6,15 @@ from transformers import (
     TrainingArguments,
     EarlyStoppingCallback
 )
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 import pandas as pd
-import csv
 
 # =====================
 # 1. Caricamento e bilanciamento dataset
 # =====================
-df = pd.read_csv("dataset_change_sustain.csv")
+
+df = pd.read_csv("./datasets/dataset_change_sustain.csv")
+
 change_df = df[df['label'] == 'change']
 sustain_df = df[df['label'] == 'sustain']
 
@@ -26,34 +26,25 @@ balanced_df = pd.concat([change_df, sustain_oversampled])
 label_map = {'change': 0, 'sustain': 1}
 balanced_df['label'] = balanced_df['label'].map(label_map)
 
-# =====================
-# 2. Split in training e validation
-# =====================
 
-# Primo split: 80% train_val, 20% test
-train_val_df, test_df = train_test_split(
-    balanced_df,
-    test_size=0.3,
-    stratify=balanced_df["label"],
-    random_state=42
-)
 
-# Secondo split
+# Split manuale in train/val (80/20)
+from sklearn.model_selection import train_test_split
 train_df, val_df = train_test_split(
-    train_val_df,
-    test_size=0.2,
-    stratify=train_val_df["label"],
+    balanced_df, 
+    test_size=0.2, 
+    stratify=balanced_df["label"], 
     random_state=42
 )
+
 # Conversione in Dataset Hugging Face
 train_dataset = Dataset.from_pandas(train_df).remove_columns("__index_level_0__").rename_column("label", "labels")
 val_dataset = Dataset.from_pandas(val_df).remove_columns("__index_level_0__").rename_column("label", "labels")
-test_dataset = Dataset.from_pandas(test_df).remove_columns("__index_level_0__").rename_column("label", "labels")
-
 
 # =====================
-# 3. Tokenizzazione
+# 2. Tokenizzazione
 # =====================
+
 tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
 
 def tokenize_function(example):
@@ -66,15 +57,12 @@ def tokenize_function(example):
 
 train_dataset = train_dataset.map(tokenize_function, batched=True)
 val_dataset = val_dataset.map(tokenize_function, batched=True)
-test_dataset = test_dataset.map(tokenize_function, batched=True)
 
-
-test_dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "labels"])
 train_dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "labels"])
 val_dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "labels"])
 
 # =====================
-# 4. Definizione metrica
+# 3. Definizione metrica
 # =====================
 def compute_metrics(eval_pred):
     logits, labels = eval_pred
@@ -89,15 +77,15 @@ def compute_metrics(eval_pred):
     }
 
 # =====================
-# 5. Caricamento modello
+# 4. Caricamento modello
 # =====================
 model = RobertaForSequenceClassification.from_pretrained("roberta-base", num_labels=2)
 
 # =====================
-# 6. Training 
+# 5. Training 
 # =====================
 training_args = TrainingArguments(
-    output_dir="./results/change_sustain/checkpoints",
+    output_dir="./results/model2/checkpoints",
     evaluation_strategy="epoch",
     save_strategy="epoch",
     learning_rate=2e-5,
@@ -105,14 +93,13 @@ training_args = TrainingArguments(
     per_device_eval_batch_size=16,
     num_train_epochs=5,  
     weight_decay=0.01,
-    logging_dir="./results/change_sustain/logs",
+    logging_dir="./results/model2/logs",
     logging_steps=50,
     load_best_model_at_end=True,
     metric_for_best_model="f1",
     greater_is_better=True
 )
 
-# Inizializzazione Trainer
 trainer = Trainer(
     model=model,
     args=training_args,
@@ -123,28 +110,11 @@ trainer = Trainer(
     callbacks=[EarlyStoppingCallback(early_stopping_patience=2)]
 )
 
-# Training
 trainer.train()
 
 # =====================
-# 7. Valutazione su test set
+# 6. Salvataggio
 # =====================
 
-metrics = trainer.evaluate(eval_dataset=test_dataset)
-print(metrics)
-
-with open("./results/change_sustain/test_metrics.csv", "w", newline="") as f:
-    writer = csv.writer(f)
-    writer.writerow(metrics.keys())
-    writer.writerow(metrics.values())
-
-
-# =====================
-# 8. Salvataggio
-# =====================
-
-
-
-trainer.save_model("./results/change_sustain/best_model")    
-tokenizer.save_pretrained("./results/change_sustain/best_model")  
-
+trainer.save_model("./results/model2/best_model")
+tokenizer.save_pretrained("./results/model2/best_model")

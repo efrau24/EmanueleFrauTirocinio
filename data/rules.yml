@@ -45,6 +45,12 @@ rules:
     - intent: inform_health_condition
     - action: action_classify_user_health_condition
 
+- rule: Classify user lifestyle
+  steps:
+    - intent: inform_lifestyle
+    - action: action_classify_user_lifestyle
+
+
 - rule: User refuses to provide information
   steps:
     - intent: reject
@@ -59,7 +65,7 @@ rules:
 
 - rule: Respond_to_ask_about_chatbot
   steps:
-    - intent: ask about chatbot
+    - intent: ask_about_chatbot
     - action: utter_info
 
 # custom action rules

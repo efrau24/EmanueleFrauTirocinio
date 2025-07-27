@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Chatbot</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-header">Rasa Chatbot</div>
+    <div class="chat-box" id="chat"></div>
+    <div class="chat-input">
+      <input type="text" id="user-input" placeholder="Text here..." />
+      <button class="send-button" onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    function appendMessage(sender, text) {
+      const chat = document.getElementById("chat");
+
+      const message = document.createElement("div");
+      message.classList.add("message", sender);
+
+      const avatar = document.createElement("img");
+      avatar.classList.add("avatar");
+      avatar.src = sender === "user" ? "user.png" : "bot.png";
+
+      const bubble = document.createElement("div");
+      bubble.classList.add("bubble");
+      bubble.textContent = text;
+
+      message.appendChild(avatar);
+      message.appendChild(bubble);
+      chat.appendChild(message);
+
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById("user-input");
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = "";
+
+      appendMessage("user", text);
+
+      const response = await fetch("http://localhost:5005/webhooks/rest/webhook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sender: "user", message: text })
+      });
+
+      const data = await response.json();
+      data.forEach(entry => {
+        if (entry.text) {
+          appendMessage("bot", entry.text);
+        }
+      });
+    }
+  </script>
+</body>
+</html>

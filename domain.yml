@@ -11,7 +11,6 @@ intents:
   - affirm
   - user_name
   - user_age
-  - user_city
   - nlu_fallback
   - generic_message
   - health_goal
@@ -19,13 +18,14 @@ intents:
   - inform_occupation
   - inform_interests
   - inform_health_condition
+  - inform_lifestyle
   - thank_you
   - mi_message
+  - ask_about_chatbot
 
 entities:
   - name
   - age
-  - location
 
 slots:
 
@@ -65,7 +65,7 @@ slots:
 
 
   occupation:
-    type: text
+    type: list
     influence_conversation: false
     mappings:
       - type: custom
@@ -91,6 +91,15 @@ slots:
         conditions:
           - active_loop: user_info_form
             requested_slot: health_condition
+
+  lifestyle:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: custom
+        conditions:
+          - active_loop: user_info_form
+            requested_slot: lifestyle
 
 
 
@@ -121,6 +130,7 @@ forms:
       - occupation
       - interests
       - health_condition
+      - lifestyle
 
 
 responses:
@@ -128,12 +138,12 @@ responses:
   # First convo 
 
   utter_initial_greeting:
-  - text: "Hi!. Before we start, is this your first time talking with a chatbot?"
-  - text: "Hello! I'm here to help you. Before we begin, is this your first time chatting with a chatbot?"
-  - text: "Hi there! Is this your first conversation with a chatbot?"
-  - text: "Hello there! I'm here to support you. Before we move forward, is this your first time chatting with a chatbot?"
-  - text: "Hi there! Is this your first time chatting with a chatbot?"
-  - text: "Hello! I'm here to support you. Is this your first time speaking with a chatbot?"
+  - text: "Hi!. Before we start, is this your first time talking with a chatbot like me?"
+  - text: "Hello! I'm here to help you. Before we begin, is this your first time chatting with a chatbot like me?"
+  - text: "Hi there! Is this your first conversation with a chatbot like me?"
+  - text: "Hello there! I'm here to support you. Before we move forward, is this your first time chatting with a chatbot like me?"
+  - text: "Hi there! Is this your first time chatting with a chatbot like me?"
+  - text: "Hello! I'm here to support you. Is this your first time speaking with a chatbot like me?"
 
 
   utter_first_time_info:
@@ -152,7 +162,16 @@ responses:
         I can offer guidance and support, but I'm not a licensed therapist and should not replace professional mental health care. 
         If you're in crisis or need urgent help, please contact a mental health professional or emergency services. 
         To begin, I'd like to ask you a few questions about yourself.
-    
+  
+  utter_not_first_time:
+    - text: |
+        Great! So, you're familiar with how I can assist you. 
+        I'm here to support your mental health and behavior change journey.
+        To begin, I need to gather some basic information about you.
+    - text: |
+        Awesome! Since you're not new here, you know I can help with mental health and behavior change. 
+        Let's start by collecting some basic information about you.
+
   utter_info:
     - text: |
         I'm here to support you with mental health and behavior change. I can listen, provide guidance, and help you reflect on your thoughts and actions.
@@ -169,6 +188,9 @@ responses:
     - text: "I'd like to know how old you are."
     - text: "Would you mind telling me your age?"
 
+  utter_ask_lifestyle:
+    - text: "How would you describe your lifestyle?"
+    - text: "Can you tell me a bit about your lifestyle?"
 
   utter_ask_occupation:
     - text: "What do you do for work or study?"
@@ -247,4 +269,6 @@ actions:
   - action_classify_user_occupation
   - action_classify_user_interests
   - action_classify_user_health_condition
+  - action_classify_user_lifestyle
   - validate_user_info_form
+

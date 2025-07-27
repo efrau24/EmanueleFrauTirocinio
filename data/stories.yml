@@ -11,3 +11,14 @@ stories:
     - action: user_info_form
     - active_loop: user_info_form
 
+- story: Inform user about the chatbot role
+  steps:
+    - intent: greet
+    - action: utter_initial_greeting 
+    - intent: deny
+    - action: utter_not_first_time
+    - action: user_info_form
+    - active_loop: user_info_form
+
+
+
