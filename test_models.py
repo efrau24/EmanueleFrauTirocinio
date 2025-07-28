@@ -131,8 +131,37 @@ with open("metriche.json", "w") as f:
 
 
 # =====================
-# 8. Rappresentazione grafica delle metriche 
+# 8. Rappresentazione grafica delle metriche modello 2
 # =====================
+
+# Probabilità predette per la classe 'non-neutral'
+y_probs_1 = df["conf_model1_non_neutral"].values
+y_true_1 = df["label_model1"].values  # 0 = neutral, 1 = non-neutral
+
+# Definizione soglie
+thresholds_1 = np.linspace(0.5, 1.0, 101)
+precisions_1, recalls_1, f1s_1 = [], [], []
+
+# Calcolo metriche per ogni soglia
+for t in thresholds_1:
+    y_pred_1 = (y_probs_1 >= t).astype(int)
+    precisions_1.append(precision_score(y_true_1, y_pred_1, zero_division=0))
+    recalls_1.append(recall_score(y_true_1, y_pred_1, zero_division=0))
+    f1s_1.append(f1_score(y_true_1, y_pred_1, zero_division=0))
+
+# Rappresentazione grafica
+plt.figure(figsize=(10, 6))
+plt.plot(thresholds_1, precisions_1, label='Precision', color='blue')
+plt.plot(thresholds_1, recalls_1, label='Recall', color='green')
+plt.plot(thresholds_1, f1s_1, label='F1 Score', color='red')
+plt.xlabel('Soglia di confidenza (classe non-neutral)')
+plt.ylabel('Valore metrica')
+plt.title('Model 1: neutral vs non-neutral')
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show(block=False)
+
 
 # Probabilità predette per la classe 'sustain' 
 y_probs = probs2[:, 1]
@@ -156,8 +185,32 @@ plt.plot(thresholds, recalls, label='Recall', color='green')
 plt.plot(thresholds, f1s, label='F1 Score', color='red')
 plt.xlabel('Soglia di confidenza (classe sustain)')
 plt.ylabel('Valore metrica')
-plt.title('Metriche al variare della soglia (Model 2: change vs sustain)')
+plt.title('Model 2: change vs sustain')
 plt.legend()
 plt.grid(True)
 plt.tight_layout()
 plt.show()
+
+
+# =====================
+# 9. Ricerca soglia ottimale per F1-score
+# =====================
+
+# Model 1: neutral vs non-neutral
+best_idx_1 = np.argmax(f1s_1)
+best_threshold_1 = thresholds_1[best_idx_1]
+best_f1_1 = f1s_1[best_idx_1]
+
+# Model 2: change vs sustain
+best_idx_2 = np.argmax(f1s)
+best_threshold_2 = thresholds[best_idx_2]
+best_f1_2 = f1s[best_idx_2]
+
+# Stampa
+print("Soglia ottimale per F1-score (Model 1: neutral vs non-neutral):")
+print(f"- Threshold: {best_threshold_1:.3f}")
+print(f"- F1-score:  {best_f1_1:.3f}")
+
+print("\nSoglia ottimale per F1-score (Model 2: change vs sustain):")
+print(f"- Threshold: {best_threshold_2:.3f}")
+print(f"- F1-score:  {best_f1_2:.3f}")
