@@ -131,25 +131,25 @@ with open("metriche.json", "w") as f:
 
 
 # =====================
-# 8. Rappresentazione grafica delle metriche modello 2
+# 9. Rappresentazione grafica delle metriche modello 1
 # =====================
 
 # Probabilità predette per la classe 'non-neutral'
 y_probs_1 = df["conf_model1_non_neutral"].values
-y_true_1 = df["label_model1"].values  # 0 = neutral, 1 = non-neutral
+y_true_1 = df["label_model1"].values  
 
 # Definizione soglie
 thresholds_1 = np.linspace(0.5, 1.0, 101)
 precisions_1, recalls_1, f1s_1 = [], [], []
 
-# Calcolo metriche per ogni soglia
+# Calcolo metriche per ogni valore della soglia
 for t in thresholds_1:
     y_pred_1 = (y_probs_1 >= t).astype(int)
     precisions_1.append(precision_score(y_true_1, y_pred_1, zero_division=0))
     recalls_1.append(recall_score(y_true_1, y_pred_1, zero_division=0))
     f1s_1.append(f1_score(y_true_1, y_pred_1, zero_division=0))
 
-# Rappresentazione grafica
+# Grafico
 plt.figure(figsize=(10, 6))
 plt.plot(thresholds_1, precisions_1, label='Precision', color='blue')
 plt.plot(thresholds_1, recalls_1, label='Recall', color='green')
@@ -163,54 +163,100 @@ plt.tight_layout()
 plt.show(block=False)
 
 
-# Probabilità predette per la classe 'sustain' 
-y_probs = probs2[:, 1]
-y_true = labels2
 
-# Costruzione curve
-thresholds = np.linspace(0.5, 1.0, 101)
-precisions, recalls, f1s = [], [], []
+# =====================
+# 10. Rappresentazione grafica delle metriche modello 2
+# =====================
 
-# Calcolo delle metriche per ogni soglia
-for t in thresholds:
-    y_pred = (y_probs >= t).astype(int)
-    precisions.append(precision_score(y_true, y_pred, zero_division=0))
-    recalls.append(recall_score(y_true, y_pred, zero_division=0))
-    f1s.append(f1_score(y_true, y_pred, zero_division=0))
+# Definizione soglie
+thresholds_2 = np.linspace(0.5, 1.0, 101)
+precisions_filt, recalls_filt, f1s_filt, counts = [], [], [], []
 
-# Rappresentazione grafica
+# Calcolo metriche per ogni valore della soglia
+for t in thresholds_2:
+    # Selezione frasi non-neutral con confidenza ≥ soglia
+    sub_df = df[
+        (df["pred_model1"] == 1) &
+        (df["conf_model1_non_neutral"] >= t) &
+        (df["label"].isin(["change", "sustain"]))
+    ].copy()
+
+    
+    if sub_df.empty:
+        # Nessun dato selezionato a questa soglia
+        precisions_filt.append(0)
+        recalls_filt.append(0)
+        f1s_filt.append(0)
+        counts.append(0)
+        continue
+
+    # Etichette vere
+    sub_df["label_model2"] = sub_df["label"].map({"change": 0, "sustain": 1})
+
+    # Predizioni modello 2
+    inputs = tokenize_texts(sub_df["text"].tolist()).to(device)
+    with torch.no_grad():
+        outputs = model2(**inputs)
+        probs = F.softmax(outputs.logits, dim=-1).cpu().numpy()
+
+    preds = np.argmax(probs, axis=1)
+    labels = sub_df["label_model2"].values
+
+    # Metriche
+    precisions_filt.append(precision_score(labels, preds, zero_division=0))
+    recalls_filt.append(recall_score(labels, preds, zero_division=0))
+    f1s_filt.append(f1_score(labels, preds, zero_division=0))
+    counts.append(len(sub_df))
+
+# Grafico
 plt.figure(figsize=(10, 6))
-plt.plot(thresholds, precisions, label='Precision', color='blue')
-plt.plot(thresholds, recalls, label='Recall', color='green')
-plt.plot(thresholds, f1s, label='F1 Score', color='red')
-plt.xlabel('Soglia di confidenza (classe sustain)')
-plt.ylabel('Valore metrica')
-plt.title('Model 2: change vs sustain')
+plt.plot(thresholds_2, precisions_filt, label="Precision", color="blue")
+plt.plot(thresholds_2, recalls_filt, label="Recall", color="green")
+plt.plot(thresholds_2, f1s_filt, label="F1 Score", color="red")
+plt.xlabel("Soglia di confidenza per filtro frasi non-neutral")
+plt.ylabel("Valore metrica")
+plt.title("Effetto della soglia di filtraggio su performance del Model 2")
+plt.grid(True)
+plt.legend()
+plt.tight_layout()
+plt.show(BlockingIOError)
+
+
+
+# =====================
+# 11. conteggi predizioni non-neutral
+# =====================
+
+# Totale veri non-neutral (label originale diversa da "neutral")
+true_non_neutral_total = (df["label_model1"] == 1).sum()
+
+# Liste per salvare i valori
+num_pred_non_neutral = []
+num_correct_non_neutral = []
+
+# Ciclo sulle soglie
+for t in thresholds_1:
+    # Predizioni come non-neutral a questa soglia
+    mask_pred = (df["conf_model1_non_neutral"] >= t).astype(int)
+    
+    # Numero di predetti come non-neutral
+    num_pred = mask_pred.sum()
+    
+    # Numero di veri non-neutral tra quelli predetti
+    correct_pred = ((mask_pred == 1) & (df["label_model1"] == 1)).sum()
+    
+    num_pred_non_neutral.append(num_pred)
+    num_correct_non_neutral.append(correct_pred)
+
+# Grafico
+plt.figure(figsize=(10, 6))
+plt.plot(thresholds_1, num_pred_non_neutral, label="Predetti come non-neutral", color="orange")
+plt.plot(thresholds_1, num_correct_non_neutral, label="Tra questi, veri non-neutral", color="green")
+plt.axhline(y=true_non_neutral_total, color="red", linestyle="--", label="Totale veri non-neutral (costante)")
+plt.xlabel("Soglia di confidenza (classe non-neutral)")
+plt.ylabel("Numero di frasi")
+plt.title("Conteggio predizioni non-neutral al variare della soglia")
 plt.legend()
 plt.grid(True)
 plt.tight_layout()
-plt.show()
-
-
-# =====================
-# 9. Ricerca soglia ottimale per F1-score
-# =====================
-
-# Model 1: neutral vs non-neutral
-best_idx_1 = np.argmax(f1s_1)
-best_threshold_1 = thresholds_1[best_idx_1]
-best_f1_1 = f1s_1[best_idx_1]
-
-# Model 2: change vs sustain
-best_idx_2 = np.argmax(f1s)
-best_threshold_2 = thresholds[best_idx_2]
-best_f1_2 = f1s[best_idx_2]
-
-# Stampa
-print("Soglia ottimale per F1-score (Model 1: neutral vs non-neutral):")
-print(f"- Threshold: {best_threshold_1:.3f}")
-print(f"- F1-score:  {best_f1_1:.3f}")
-
-print("\nSoglia ottimale per F1-score (Model 2: change vs sustain):")
-print(f"- Threshold: {best_threshold_2:.3f}")
-print(f"- F1-score:  {best_f1_2:.3f}")
+plt.show(block=False)

@@ -47,8 +47,7 @@ slots:
     type: text
     influence_conversation: false
     mappings:
-      - type: from_entity
-        entity: name
+      - type: custom
         conditions:
         - active_loop: user_info_form
           requested_slot: name
@@ -264,6 +263,7 @@ actions:
   - action_conversation_started
   - action_personalized_greeting
   - action_submit_user_info_form
+  - action_extract_name
   - action_classify_topic
   - action_classify_talk_type
   - action_classify_user_occupation

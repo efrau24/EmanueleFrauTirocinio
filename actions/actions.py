@@ -5,7 +5,7 @@ from rasa_sdk.events import SlotSet, ActiveLoop
 from rasa_sdk.types import DomainDict
 from rasa_sdk.forms import FormValidationAction
 from sentence_transformers import SentenceTransformer, util
-from transformers import pipeline, BertTokenizer, BertForSequenceClassification
+from transformers import pipeline, BertTokenizer, BertForSequenceClassification, AutoTokenizer, AutoModelForTokenClassification
 import torch
 import requests
 import logging
@@ -16,7 +16,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Inizializzazione modelli 
 
-model = SentenceTransformer("hkunlp/instructor-xl", device=device)
+embedder = SentenceTransformer("hkunlp/instructor-xl", device=device)
 
 
 occupations = [
@@ -86,11 +86,11 @@ occupations = [
 ]
 
 instruction_occ = "Occupation category:"
-occupation_embeddings = model.encode([[instruction_occ, occ] for occ in occupations], convert_to_tensor=True)
+occupation_embeddings = embedder.encode([[instruction_occ, occ] for occ in occupations], convert_to_tensor=True)
 
 def classify_occupations_instructor(user_input, threshold=0.4, top_k=None):
 
-    user_embedding = model.encode(
+    user_embedding = embedder.encode(
         [["What are the occupations of this person?:", user_input]], 
         convert_to_tensor=True
     )[0]
@@ -153,11 +153,11 @@ interests = [
 ]
 
 instruction_int = "Represent this interest category:"
-interest_embeddings = model.encode([[instruction_int, int] for int in interests], convert_to_tensor=True)
+interest_embeddings = embedder.encode([[instruction_int, int] for int in interests], convert_to_tensor=True)
 
 def classify_interests_instructor(user_input, threshold=0.4, top_k=None):
 
-    user_embedding = model.encode(
+    user_embedding = embedder.encode(
         [["Represent the interests of this person:", user_input]], 
         convert_to_tensor=True
     )[0]
@@ -195,11 +195,11 @@ common_health_labels_en = [
 ]
 
 intruction_health = "Represent this health condition category:"
-health_embeddings = model.encode([[intruction_health, label] for label in common_health_labels_en], convert_to_tensor=True)
+health_embeddings = embedder.encode([[intruction_health, label] for label in common_health_labels_en], convert_to_tensor=True)
 
 def classify_health_condition_instructor(user_input, threshold=0.8, top_k=None):
 
-    user_embedding = model.encode(
+    user_embedding = embedder.encode(
         [["Represent the health condition of this person:", user_input]], 
         convert_to_tensor=True
     )[0]
@@ -229,11 +229,11 @@ lifestyle_labels = [
 
 
 intruction_lifestyle = "Lifestyle category:"
-lifestyle_embeddings = model.encode([[intruction_lifestyle, label] for label in lifestyle_labels], convert_to_tensor=True)
+lifestyle_embeddings = embedder.encode([[intruction_lifestyle, label] for label in lifestyle_labels], convert_to_tensor=True)
 
 def classify_lifestyle_instructor(user_input, threshold=0.8, top_k=None):
 
-    user_embedding = model.encode(
+    user_embedding = embedder.encode(
         [["Represent the lifestyle of this person:", user_input]], 
         convert_to_tensor=True
     )[0]
@@ -271,6 +271,46 @@ candidate_labels = [
   
 
 # Azioni personalizzate per Rasa
+
+ner_tokenizer = AutoTokenizer.from_pretrained("Davlan/xlm-roberta-base-ner-hrl")
+ner_model = AutoModelForTokenClassification.from_pretrained("Davlan/xlm-roberta-base-ner-hrl")
+ner_pipeline = pipeline("ner", model=ner_model, tokenizer=ner_tokenizer, aggregation_strategy="simple")
+
+
+class ActionExtractName(Action):
+    def name(self) -> Text:
+        return "action_extract_name"
+
+    def run(self,
+            dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+
+        user_message = tracker.latest_message.get("text").strip()
+
+        # Step 1: Prova con NER
+        entities = ner_pipeline(user_message)
+        name = None
+
+        for ent in entities:
+            if ent["entity_group"] == "PER":
+                name = ent["word"]
+                break
+
+        # Step 2: Fallback se NER non trova nulla
+        if not name:
+            if user_message.istitle() and " " not in user_message:
+                # singola parola con iniziale maiuscola, potrebbe essere un nome
+                name = user_message
+
+        if name:
+            dispatcher.utter_message(text=f"Nice to meet you, {name}!")
+            return [SlotSet("name", name)]
+        else:
+            dispatcher.utter_message(text="Sorry, I couldn’t catch your name.")
+            return []
+
+
 
 class ActionClassifyTalkType(Action):
 
