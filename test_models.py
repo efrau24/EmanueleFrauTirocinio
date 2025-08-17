@@ -219,7 +219,7 @@ plt.title("Effetto della soglia di filtraggio su performance del Model 2")
 plt.grid(True)
 plt.legend()
 plt.tight_layout()
-plt.show(BlockingIOError)
+plt.show(block=False)
 
 
 
@@ -229,6 +229,7 @@ plt.show(BlockingIOError)
 
 # Totale veri non-neutral (label originale diversa da "neutral")
 true_non_neutral_total = (df["label_model1"] == 1).sum()
+print(f"Totale veri non-neutral: {true_non_neutral_total}")
 
 # Liste per salvare i valori
 num_pred_non_neutral = []
@@ -259,4 +260,4 @@ plt.title("Conteggio predizioni non-neutral al variare della soglia")
 plt.legend()
 plt.grid(True)
 plt.tight_layout()
-plt.show(block=False)
+plt.show()

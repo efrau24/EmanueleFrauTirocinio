@@ -18,77 +18,105 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 embedder = SentenceTransformer("hkunlp/instructor-xl", device=device)
 
-
 occupations = [
-    "High school student", "University student", "PhD student", "Student", "Postdoc researcher",
-    "Teacher", "Primary school teacher", "High school teacher", "University professor",
-    "Academic researcher", "Private tutor", "School counselor", "Librarian",
-    "Doctor", "General practitioner", "Surgeon", "Dentist", "Nurse", "Pharmacist",
-    "Psychologist", "Psychiatrist", "Therapist", "Paramedic", "Medical assistant",
-    "Veterinarian", "Healthcare administrator", "Radiologist", "Anesthesiologist",
+    # Students / Education
+    "High school student", "University student", "Postgraduate student",
+    "Teacher", "School teacher", "University professor", "Academic researcher",
+    "Private tutor", "School counselor", "Librarian", "Education consultant",
+    "Curriculum developer", "School principal", "Academic advisor", "Language teacher",
+    "Early childhood educator", "Special education teacher", "Training specialist",
+    
+    # Healthcare
+    "Doctor", "Dentist", "Nurse", "Pharmacist", "Psychologist", "Psychiatrist",
+    "Therapist", "Medical assistant", "Paramedic", "Veterinarian",
+    "Healthcare administrator", "Radiologist", "Anesthesiologist",
     "Occupational therapist", "Speech therapist", "Nutritionist", "Dietitian",
-    "Dental hygienist", "Medical technologist", "Lab technician", "Caregiver",
-    "Hospice worker", "Home health aide",
-    "Worker", "Freelancer", "Self-employed", "Part-time worker", "Intern", "Unemployed",
-    "Looking for a job", "Homemaker", "Stay-at-home parent", "Retired", "Volunteer",
-    "Software developer", "Frontend developer", "Backend developer", "Full stack developer",
-    "Mobile developer", "Game developer", "DevOps engineer", "Machine learning engineer",
+    "Dental hygienist", "Medical technologist", "Lab technician",
+    "Caregiver", "Hospice worker", "Home health aide",
+
+    # Generic work statuses
+    "Worker", "Freelancer", "Self-employed", "Part-time worker", "Intern",
+    "Unemployed", "Job seeker", "Homemaker", "Stay-at-home parent",
+    "Retired", "Volunteer", "Gig worker", "Remote worker", "Digital nomad",
+
+    # Tech & IT
+    "Software developer", "Full stack developer", "Mobile developer", 
+    "Game developer", "DevOps engineer", "Machine learning engineer",
     "AI researcher", "Data scientist", "Data analyst", "IT support specialist",
-    "System administrator", "Cybersecurity analyst", "Cloud architect", "Blockchain developer",
-    "Game designer", "QA tester", "AR/VR developer", "Web designer", "Database administrator",
-    "Tech blogger", "IT auditor",
+    "System administrator", "Cybersecurity analyst", "Cloud architect",
+    "Blockchain developer", "Game designer", "QA tester", "Web designer",
+    "UI/UX designer", "Database administrator", "IT auditor", "Tech blogger",
+
+    # Engineering & Technical
     "Engineer", "Civil engineer", "Mechanical engineer", "Electrical engineer",
     "Industrial engineer", "Architect", "Construction worker", "Technician",
-    "Mechanic", "Electrician", "Plumber", "Carpenter", "Blacksmith", "Locksmith",
-    "Welder", "Roofer", "HVAC technician", "Elevator technician", "Surveyor",
-    "Upholsterer", "Glazier", "Mason",
+    "Mechanic", "Electrician", "Plumber", "Carpenter", "Welder", "Roofer",
+    "HVAC technician", "Surveyor", "Glazier", "Mason",
+
+    # Transport & Logistics
     "Truck driver", "Forklift operator", "Warehouse worker", "Logistics coordinator",
     "Supply chain manager", "Air traffic controller", "Pilot", "Flight attendant",
-    "Ship captain", "Sailor", "Railway conductor", "Delivery driver", "Taxi driver",
-    "Delivery coordinator", "Courier",
-    "Artist", "Painter", "Illustrator", "Musician", "Composer", "Actor", "Filmmaker",
-    "Photographer", "Video editor", "Graphic designer", "UX designer", "UI designer",
-    "Fashion designer", "Interior designer", "Art director", "Set designer", "Animator",
-    "Voice actor", "Fashion model", "Creative director", "Brand strategist", "Comic artist",
-    "Screenwriter", "Music producer", "DJ", "Tattoo artist",
-    "Journalist", "Writer", "Poet", "Content creator", "YouTuber", "Podcaster",
-    "Influencer", "Social media manager",
-    "Entrepreneur", "Business owner", "Startup founder", "Manager", "Team leader",
+    "Ship captain", "Railway conductor", "Delivery driver", "Taxi driver",
+    "Courier",
+
+    # Art & Media
+    "Artist", "Painter", "Illustrator", "Musician", "Composer", "Actor",
+    "Filmmaker", "Photographer", "Video editor", "Graphic designer",
+    "Fashion designer", "Interior designer", "Art director", "Animator",
+    "Voice actor", "Model", "Creative director", "Comic artist", "Screenwriter",
+    "Music producer", "DJ", "Tattoo artist",
+
+    # Communication & Content
+    "Journalist", "Writer", "Poet", "Content creator", "YouTuber",
+    "Podcaster", "Influencer", "Social media manager",
+
+    # Business & Management
+    "Entrepreneur", "Business owner", "Startup founder", "Manager",
     "Project manager", "Product manager", "Salesperson", "Marketing specialist",
-    "Financial analyst", "Accountant", "Bank teller", "HR specialist", "Consultant",
-    "Business analyst", "Recruiter", "Investment banker", "Trader", "Venture capitalist",
-    "Real estate agent", "Insurance agent", "Loan officer", "Auditor", "Economist",
-    "Fundraiser", "Non-profit manager", "Executive assistant", "Office manager",
-    "Administrative assistant", "Compliance officer", "Procurement specialist",
-    "Risk analyst", "Operations manager", "Quality assurance specialist", "Event planner",
-    "Scheduler",
-    "Lawyer", "Paralegal", "Judge", "Legal assistant", "Compliance analyst", "Court clerk",
+    "Financial analyst", "Accountant", "HR specialist", "Consultant",
+    "Business analyst", "Recruiter", "Investment banker", "Trader",
+    "Real estate agent", "Insurance agent", "Loan officer", "Auditor",
+    "Economist", "Fundraiser", "Non-profit manager", "Executive assistant",
+    "Office manager", "Administrative assistant", "Compliance officer",
+    "Procurement specialist", "Operations manager", "Quality assurance specialist",
+    "Event planner",
+
+    # Legal
+    "Lawyer", "Paralegal", "Judge", "Legal assistant", "Court clerk",
     "Legal advisor", "Mediator", "Notary public",
-    "Police officer", "Firefighter", "Military personnel", "Public servant", "Politician",
-    "Social worker", "Community organizer", "NGO worker", "Immigration officer",
-    "City planner", "Diplomat", "Archivist", "Museum curator", "Census worker",
-    "Chemist", "Biologist", "Physicist", "Environmental scientist", "Geologist",
-    "Lab researcher", "Clinical researcher", "Science communicator", "Statistician",
-    "Farmer", "Agricultural engineer", "Ecologist", "Beekeeper", "Fisherman",
-    "Forestry worker", "Landscape designer", "Environmental consultant", "Park ranger",
-    "Zookeeper",
-    "Customer service agent", "Waiter", "Barista", "Chef", "Cook", "Cashier",
+
+    # Public sector & Safety
+    "Police officer", "Firefighter", "Military personnel", "Public servant",
+    "Politician", "Social worker", "Community organizer", "NGO worker",
+    "Immigration officer", "City planner", "Diplomat",
+
+    # Science & Environment
+    "Scientist", "Chemist", "Biologist", "Physicist", "Environmental scientist",
+    "Geologist", "Lab researcher", "Clinical researcher", "Statistician",
+    "Science communicator", "Ecologist", "Environmental consultant",
+    "Agricultural engineer", "Forestry worker", "Park ranger", "Zookeeper",
+    "Farmer", "Fisherman", "Beekeeper", "Landscape designer",
+
+    # Service & Hospitality
+    "Customer service agent", "Waiter", "Chef", "Cashier",
     "Retail worker", "Janitor", "Security guard", "Bartender",
+
+    # Personal care & Lifestyle
     "Babysitter", "Pet sitter", "Dog walker", "Housekeeper", "Personal trainer",
     "Fitness coach", "Yoga instructor", "Life coach", "Motivational speaker",
-    "Spiritual advisor", "Psychic", "Magician", "Model", "Escort", "Club promoter",
-    "Event host", "Auctioneer",
-    "Special education teacher", "Education consultant", "Curriculum developer",
-    "School principal", "Academic advisor", "Test prep tutor", "Language teacher",
-    "Early childhood educator", "Training specialist",
-    "Student (generic)", "Job seeker", "Gig worker", "Remote worker", "Digital nomad",
-    "No occupation", "Prefer not to say", 
+    "Spiritual advisor", "Psychic",
+
+    # Events & Entertainment
+    "Magician", "Escort", "Club promoter", "Event host", "Auctioneer",
+
+    # Neutral
+    "No occupation", "Prefer not to say"
 ]
 
-instruction_occ = "Occupation category:"
+instruction_occ = "Represent the occupation mentioned in this sentence:"
 occupation_embeddings = embedder.encode([[instruction_occ, occ] for occ in occupations], convert_to_tensor=True)
 
-def classify_occupations_instructor(user_input, threshold=0.4, top_k=None):
+def classify_occupations_instructor(user_input, threshold=0.8, top_k=None):
 
     user_embedding = embedder.encode(
         [["What are the occupations of this person?:", user_input]], 
@@ -112,8 +140,7 @@ def classify_occupations_instructor(user_input, threshold=0.4, top_k=None):
 
 
 
-
-
+# === Lista di interessi ===
 interests = [
     "running", "jogging", "walking", "cycling", "swimming", "hiking", "climbing",
     "football", "soccer", "basketball", "tennis", "volleyball", "skiing", "snowboarding",
@@ -141,7 +168,7 @@ interests = [
     "minimalism", "self-care", "productivity", "personal development",
     "gardening", "plants", "birdwatching", "fishing", "hunting", "camping",
     "forests", "mountains", "beaches", "animals", "pets", "dog walking",
-    "volunteering at shelters", "horseback riding",
+    "volunteering at shelters", "horseback riding", "electronics",
     "DIY projects", "woodworking", "home improvement", "electronics repair",
     "model building", "mechanics", "robotics", "3D printing",
     "coding", "web development", "AI and machine learning", "tech news",
@@ -152,13 +179,83 @@ interests = [
     "socializing", "meeting new people", "clubbing", "networking", "nothing"
 ]
 
+# === Macro categorie ===
+macro_categories = {
+    "Fitness & Sports": [
+        "running", "jogging", "walking", "cycling", "swimming", "hiking", "climbing",
+        "football", "soccer", "basketball", "tennis", "volleyball", "skiing", "snowboarding",
+        "skating", "surfing", "martial arts", "boxing", "gym", "fitness", "yoga", "pilates",
+        "aerobics", "dance fitness", "crossfit", "bodybuilding"
+    ],
+    "Music": [
+        "listening to music", "playing instruments", "singing", "composing music",
+        "attending concerts", "music production", "DJing", "karaoke", "classical music",
+        "rock music", "pop music", "jazz", "hip hop", "electronic music"
+    ],
+    "Literature": [
+        "reading fiction", "reading non-fiction", "science fiction", "fantasy books",
+        "mystery novels", "philosophy books", "self-help books", "poetry",
+        "writing stories", "blogging", "journaling", "writing poetry", "creative writing"
+    ],
+    "Gaming": [
+        "video games", "mobile games", "MMORPGs", "strategy games", "board games",
+        "card games", "chess", "Dungeons and Dragons", "puzzle games", "game development"
+    ],
+    "Arts": [
+        "drawing", "painting", "sculpting", "digital art", "graphic design", "calligraphy",
+        "photography", "film making", "video editing", "animation", "fashion design",
+        "makeup art", "interior design", "crafting", "origami", "knitting", "sewing"
+    ],
+    "Science & Education": [
+        "science", "physics", "astronomy", "biology", "chemistry", "mathematics", "philosophy",
+        "psychology", "history", "politics", "geography", "languages", "learning new skills",
+        "debating", "TED Talks", "documentaries", "museums", "archaeology"
+    ],
+    "Food & Cooking": [
+        "cooking", "baking", "trying new recipes", "street food", "vegetarian food",
+        "vegan cooking", "wine tasting", "coffee brewing", "craft beer"
+    ],
+    "Travel & Adventure": [
+        "traveling", "backpacking", "road trips", "exploring cities", "cultural exchange",
+        "camping", "van life", "travel blogging", "airbnb experiences"
+    ],
+    "Well-being & Lifestyle": [
+        "yoga", "meditation", "mindfulness", "journaling", "sleep optimization",
+        "minimalism", "self-care", "productivity", "personal development"
+    ],
+    "Nature & Outdoors": [
+        "gardening", "plants", "birdwatching", "fishing", "hunting", "camping",
+        "forests", "mountains", "beaches", "animals", "pets", "dog walking",
+        "volunteering at shelters", "horseback riding"
+    ],
+    "Tech & Engineering": [
+        "electronics", "DIY projects", "woodworking", "home improvement", "electronics repair",
+        "model building", "mechanics", "robotics", "3D printing", 
+        "coding", "web development", "AI and machine learning", "tech news",
+        "mobile apps", "gadget reviews", "cybersecurity", "hacking", "Linux",
+        "open source", "startups", "digital marketing", "crypto", "NFTs"
+    ],
+    "Social & Humanitarian": [
+        "volunteering", "activism", "environmental causes", "human rights",
+        "religion", "spirituality", "astrology", "parenting", "family time",
+        "socializing", "meeting new people", "clubbing", "networking"
+    ],
+    "Other": ["nothing"]
+}
+
+# === Mappatura da interesse a macro-categoria ===
+interest_to_macro = {
+    interest: macro for macro, interest_list in macro_categories.items()
+    for interest in interest_list
+}
+
 instruction_int = "Represent this interest category:"
 interest_embeddings = embedder.encode([[instruction_int, int] for int in interests], convert_to_tensor=True)
 
 def classify_interests_instructor(user_input, threshold=0.4, top_k=None):
 
     user_embedding = embedder.encode(
-        [["Represent the interests of this person:", user_input]], 
+        [["What are the interests of this person?:", user_input]], 
         convert_to_tensor=True
     )[0]
 
@@ -177,21 +274,32 @@ def classify_interests_instructor(user_input, threshold=0.4, top_k=None):
 
     return [label for label, score in interest_score_pairs] if interest_score_pairs else ["Other"]
 
+   
+def classify_interests_with_macro(user_input, threshold=0.4, top_k=None):
+    fine_labels = classify_interests_instructor(user_input, threshold=threshold, top_k=top_k)
 
+    macro_set = set()
+    for label in fine_labels:
+        macro = interest_to_macro.get(label, "Other")
+        macro_set.add(macro)
+
+    return {
+        "fine_labels": fine_labels,
+        "macro_labels": list(macro_set)
+    } 
+    
 
 
 
 common_health_labels_en = [
     "anxiety", "depression", "stress", "insomnia", "low self-esteem", "panic attacks",
     "burnout", "loneliness", "obsessive-compulsive disorder (OCD)", "post-traumatic stress disorder (PTSD)",
-    "social anxiety disorder", "bipolar disorder", "borderline personality disorder", "repressed anger", 
-    "procrastination", "adjustment disorder", "emotional dependency", "binge eating disorder", 
-    "emotional eating", "relationship difficulties", "obesity", "overweight", "anorexia", "hypertension", 
-    "diabetes", "high cholesterol", "thyroid problems", "chronic back pain", "joint pain", "asthma",
-    "heart problems", "chronic pain", "poor nutrition", "physical inactivity", "tooth decay", "migraine", 
-    "persistent fatigue", "metabolic syndrome", "food intolerances", "chronic stress", "substance abuse", 
-    "alcoholism", "smoking", "drug addiction", "gambling addiction", "internet addiction", 
-    "social media addiction", "good overall health", "no major health problems"
+    "bipolar disorder", "borderline personality disorder", "repressed anger", 
+    "adjustment disorder", "emotional dependency", "binge eating disorder", 
+    "emotional eating",  "obesity", "overweight", "anorexia", "hypertension", 
+    "diabetes", "high cholesterol", "thyroid problems", "heart problems", "chronic pain", "poor nutrition", 
+    "physical inactivity","substance abuse",  "alcoholism", "smoking", "drug addiction", "gambling addiction", 
+    "internet addiction", "social media addiction", "good overall health", "no major health problems"
 ]
 
 intruction_health = "Represent this health condition category:"
@@ -221,40 +329,6 @@ def classify_health_condition_instructor(user_input, threshold=0.8, top_k=None):
 
 
 
-
-lifestyle_labels = [
-    "sedentary", "active", "busy", "stressful", "healthy", 
-    "unhealthy", "irregular","balanced", "routine", "unstructured"
-]
-
-
-intruction_lifestyle = "Lifestyle category:"
-lifestyle_embeddings = embedder.encode([[intruction_lifestyle, label] for label in lifestyle_labels], convert_to_tensor=True)
-
-def classify_lifestyle_instructor(user_input, threshold=0.8, top_k=None):
-
-    user_embedding = embedder.encode(
-        [["Represent the lifestyle of this person:", user_input]], 
-        convert_to_tensor=True
-    )[0]
-
-    cosine_scores = util.cos_sim(user_embedding, lifestyle_embeddings)[0]
-
-    lifestyle_score_pairs = [
-        (lifestyle_labels[i], float(score)) 
-        for i, score in enumerate(cosine_scores) 
-        if score >= threshold
-    ]
-
-    lifestyle_score_pairs.sort(key=lambda x: x[1], reverse=True)
-
-    if top_k is not None:
-        lifestyle_score_pairs = lifestyle_score_pairs[:top_k]
-
-    return [label for label, score in lifestyle_score_pairs] if lifestyle_score_pairs else ["Other"]
-
-
-
 classifier = pipeline(
     "zero-shot-classification",
     model="facebook/bart-large-mnli",
@@ -263,9 +337,9 @@ classifier = pipeline(
 )            
 
 candidate_labels = [
-    "anxiety", "stress", "nutrition", "physical activity", "weight",
+    "anxiety", "stress", "nutrition", "physical activity", "weight", "healty eating"
     "medication adherence", "sleep", "smoking", "alcohol", "relationships",
-    "motivation", "addictions", "self-esteem", "insecurity"
+    "motivation", "substance use", "self-esteem"
 ]
 
   
@@ -288,7 +362,6 @@ class ActionExtractName(Action):
 
         user_message = tracker.latest_message.get("text").strip()
 
-        # Step 1: Prova con NER
         entities = ner_pipeline(user_message)
         name = None
 
@@ -297,10 +370,10 @@ class ActionExtractName(Action):
                 name = ent["word"]
                 break
 
-        # Step 2: Fallback se NER non trova nulla
+
         if not name:
             if user_message.istitle() and " " not in user_message:
-                # singola parola con iniziale maiuscola, potrebbe essere un nome
+
                 name = user_message
 
         if name:
@@ -379,16 +452,23 @@ class ActionClassifyUserInterests(Action):
     def name(self) -> Text:
         return "action_classify_user_interests"
     
+
     def run(self, dispatcher: CollectingDispatcher,
             tracker: Tracker,
             domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
 
         user_message = tracker.latest_message.get("text")
 
-        selected_interests = classify_interests_instructor(user_message, threshold=0.8, top_k=3)
+        results = classify_interests_with_macro(user_message, threshold=0.8, top_k=3)
 
-        
-        return [SlotSet("interests", selected_interests)]
+        fine_labels = results["fine_labels"]
+        macro_labels = results["macro_labels"]
+
+        # Imposta entrambi gli slot
+        return [
+            SlotSet("interests", macro_labels),
+            SlotSet("sub_interests", fine_labels)
+        ]
 
 
 
@@ -407,25 +487,6 @@ class ActionClassifyUserHealthCondition(Action):
 
         
         return [SlotSet("health_condition", selected_health_labels)]
-
-
-
-class ActionClassifyUserLifestyle(Action):
-
-    def name(self) -> Text:
-        return "action_classify_user_lifestyle"
-    
-    def run(self, dispatcher: CollectingDispatcher,
-            tracker: Tracker,
-            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
-
-        user_message = tracker.latest_message.get("text")
-
-        selected_lifestyle_labels = classify_lifestyle_instructor(user_message, threshold=0.8, top_k=2)
-
-        
-        return [SlotSet("lifestyle", selected_lifestyle_labels)]
-
 
 
 
@@ -460,82 +521,6 @@ class ActionClassifyTopic(Action):
         else:
             dispatcher.utter_message(text="I'm not sure I understand the problem, could you explain it a bit more?")
             return []
-
-
-
-
-
-# class ActionLLMFallback(Action):
-
-#     def name(self) -> Text:
-#         return "action_llm_fallback"
-    
-#     def classify_topic(self, message: str) -> Optional[str]:
-#         result = classifier(message, candidate_labels, multi_label=True)
-#         if result['scores'][0] > 0.8:
-#             return result['labels'][0]
-#         return None
-    
-#     def get_model(self) -> str:
-
-#         try:
-#             response = requests.get("http://localhost:1234/v1/models")
-#             if response.status_code == 200:
-#                 models = response.json().get("data", [])
-#                 if models:
-#                     return models[0]["id"] 
-#         except Exception as e:
-#             print(f"Error: {e}")
-        
-#         return "mistral-7b-instruct-v0.3"
-     
-#     def run(self, 
-#             dispatcher: CollectingDispatcher,
-#             tracker: Tracker,
-#             domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
-        
-#         user_message = tracker.latest_message.get('text')
-
-#         topic = self.classify_topic(user_message)
-     
-#         if topic:
-#             current_list = tracker.get_slot("topic_list") or []
-#             if topic not in current_list:
-#                 updated_topics = current_list + [topic]
-#                 return [
-#                     SlotSet("current_topic", topic),
-#                     SlotSet("topic_list", updated_topics)
-#                 ]
-#             else:
-#                 return [SlotSet("current_topic", topic)]
-
-
-
-#         model_name = self.get_model()
-        
-#         headers = {
-#             "Content-Type": "application/json"
-#         }
-#         payload = {
-#             "model": model_name,  
-#             "messages": [
-#                 {"role": "user", 
-#                  "content": user_message}
-#             ],
-#             "temperature": 0.5
-#         }
-
-#         response = requests.post("http://localhost:1234/v1/chat/completions", json=payload, headers=headers)
-        
-#         if response.status_code == 200:
-#             reply = response.json()['choices'][0]['message']['content']
-#         else:
-#             reply = "I'm sorry, an error occurred."
-
-#         dispatcher.utter_message(text=reply)
-#         return []
-    
-
 
 
 
@@ -598,13 +583,71 @@ class ActionSubmitFormUserInfo(Action):
 
     def name(self) -> str:
         return "action_submit_user_info_form"
+    
+    def get_model(self) -> str:
+        try:
+            response = requests.get("http://localhost:1234/v1/models")
+            if response.status_code == 200:
+                models = response.json().get("data", [])
+                if models:
+                    return models[0]["id"]
+        except Exception as e:
+            print(f"Error: {e}")
+        return "mistral-7b-instruct-v0.3"
+
+    def build_prompt(self, name, age, occupation, interests, health_condition) -> str:
+        return f"""You are an empathetic mental health support chatbot. The user has just told you a bit about themselves through a short exchange.
+
+        Here is what they've shared:
+
+        - Name: {name}
+        - Age: {age}
+        - Occupation: {occupation}
+        - Interests: {interests}
+        - Health condition: {health_condition}
+
+        Now, write a short, warm, and natural-sounding message that shows you’ve understood their situation. Your message should:
+
+        - Reflect back something meaningful they’ve shared (e.g., age, job, health, lifestyle, interests…)
+        - Make them feel heard and understood
+        - Finish with "“Where would you like to focus right now to feel better or improve your well-being?"
+        
+        Keep the tone friendly, non-judgmental, and supportive. Do not introduce yourself, greet or repeat your role — just continue the conversation as if you already know each other."""
 
     async def run(self, dispatcher: CollectingDispatcher,
-                  tracker: Tracker,
-                  domain: dict):
-        
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+
         name = tracker.get_slot("name")
-        dispatcher.utter_message(text=f"Thanks {name}! I've saved your information. Tell me more about how you're feeling today.")
+        age = tracker.get_slot("age")
+        occupation = tracker.get_slot("occupation")
+        interests = tracker.get_slot("interests")
+        health_condition = tracker.get_slot("health_condition")
+
+        prompt = self.build_prompt(name, age, occupation, interests, health_condition)
+
+        model = self.get_model()
+        headers = { "Content-Type": "application/json" }
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.5
+        }
+
+        try:
+            response = requests.post("http://localhost:1234/v1/chat/completions", json=payload, headers=headers)
+            if response.status_code == 200:
+                reply = response.json()['choices'][0]['message']['content']
+            else:
+                reply = "Thanks for completing the form! If you’d like, feel free to tell me if there’s anything you’d like to work on or explore together."
+        except Exception as e:
+            print(f"Error: {e}")
+            reply = "Thanks for completing the form! If you’d like, feel free to tell me if there’s anything you’d like to work on or explore together."
+
+        dispatcher.utter_message(text=reply)
+        
 
         
         return [

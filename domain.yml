@@ -18,7 +18,6 @@ intents:
   - inform_occupation
   - inform_interests
   - inform_health_condition
-  - inform_lifestyle
   - thank_you
   - mi_message
   - ask_about_chatbot
@@ -81,6 +80,12 @@ slots:
           - active_loop: user_info_form
             requested_slot: interests
 
+  sub_interests:
+    type: list
+    influence_conversation: false
+    mappings:
+      - type: custom
+
   
   health_condition:
     type: list
@@ -90,15 +95,6 @@ slots:
         conditions:
           - active_loop: user_info_form
             requested_slot: health_condition
-
-  lifestyle:
-    type: text
-    influence_conversation: false
-    mappings:
-      - type: custom
-        conditions:
-          - active_loop: user_info_form
-            requested_slot: lifestyle
 
 
 
@@ -129,7 +125,9 @@ forms:
       - occupation
       - interests
       - health_condition
-      - lifestyle
+
+
+
 
 
 responses:
@@ -186,11 +184,7 @@ responses:
     - text: "How old are you?"
     - text: "I'd like to know how old you are."
     - text: "Would you mind telling me your age?"
-
-  utter_ask_lifestyle:
-    - text: "How would you describe your lifestyle?"
-    - text: "Can you tell me a bit about your lifestyle?"
-
+ 
   utter_ask_occupation:
     - text: "What do you do for work or study?"
     - text: "Can you tell me a bit about what you do in your daily life?"
@@ -269,6 +263,5 @@ actions:
   - action_classify_user_occupation
   - action_classify_user_interests
   - action_classify_user_health_condition
-  - action_classify_user_lifestyle
   - validate_user_info_form
 
