@@ -29,6 +29,18 @@ rules:
         - requested_slot: null
     - action: action_submit_user_info_form
 
+# - rule: User main issue form completion
+#   condition:
+#     - active_loop: main_issue_form
+#   steps:
+#     - action: main_issue_form
+#     - active_loop: null
+#     - slot_was_set:
+#         - requested_slot: null
+#     - action: action_submit_main_issue_form
+#     - action: action_update_psych_profile
+
+
 
 - rule: Extract user name 
   steps:
@@ -70,17 +82,15 @@ rules:
 
 # custom action rules
 
-- rule: Classify topic from generic message
-  steps:
-    - intent: generic_message
-    - action: action_classify_topic
 
 - rule: LLM fallback if not classifiable
   steps:
     - intent: nlu_fallback
     - action: action_llm_fallback
 
-- rule: Classify talk type
+
+- rule: start profiling after form
   steps:
-    - intent: mi_message
-    - action: action_classify_talk_type
+    - intent: user_problem
+    - action: action_update_psych_profile
+

@@ -12,7 +12,6 @@ intents:
   - user_name
   - user_age
   - nlu_fallback
-  - generic_message
   - health_goal
   - help_request
   - inform_occupation
@@ -21,12 +20,15 @@ intents:
   - thank_you
   - mi_message
   - ask_about_chatbot
+  - user_problem
 
 entities:
   - name
   - age
 
 slots:
+
+  # --- Conversation Management Slots ---
 
   conversation_started:
     type: bool
@@ -42,6 +44,16 @@ slots:
     mappings:
       - type: custom
 
+  main_issue_form_completed:
+    type: bool
+    initial_value: false
+    influence_conversation: true
+    mappings:
+      - type: custom
+
+  # --- Static User Info Slots ---
+
+  # User basic info
   name:
     type: text
     influence_conversation: false
@@ -96,26 +108,138 @@ slots:
           - active_loop: user_info_form
             requested_slot: health_condition
 
+  # Mood and Emotion
+  mood_general:
+    type: text
+    mappings:
+      - type: custom
 
+  emotion_dominant:
+    type: text
+    mappings:
+      - type: custom
 
-  topic_list:
+  energy_level:
+    type: text
+    mappings:
+      - type: custom
+
+  # Psychological Profile (Big Five)
+
+  extraversion:
+    type: float
+    mappings:
+      - type: custom
+
+  emotional_stability:
+    type: float
+    mappings:
+      - type: custom
+
+  openness:
+    type: float
+    mappings:
+      - type: custom
+
+  agreeableness:
+    type: float
+    mappings:
+      - type: custom
+
+  conscientiousness:
+    type: float
+    mappings:
+      - type: custom
+
+  # Issues slots
+
+  current_issue:
+    type: text
+    mappings:
+      - type: custom
+
+  remaining_issues:
     type: list
-    influence_conversation: true
     mappings:
       - type: custom
 
-  current_topic:
-    type: text
-    influence_conversation: true
+
+  # --- Dynamic Conversation Slots ---
+
+  # context:
+  #   type: text
+  #   mappings:
+  #     - type: from_text
+  #       conditions:
+  #         - active_loop: main_issue_form
+  #           requested_slot: context
+  # triggers:
+  #   type: text
+  #   mappings:
+  #     - type: from_text
+  #       conditions:
+  #         - active_loop: main_issue_form
+  #           requested_slot: triggers
+
+  # intensity:
+  #   type: float
+  #   mappings:
+  #     - type: from_text
+  #       conditions:
+  #         - active_loop: main_issue_form
+  #           requested_slot: intensity
+
+  # impact:
+  #   type: text
+  #   mappings:
+  #     - type: from_text
+  #       conditions:
+  #         - active_loop: main_issue_form
+  #           requested_slot: impact
+
+
+  # motivation:
+  #   type: text
+  #   mappings:
+  #     - type: from_text
+  #       conditions:
+  #         - active_loop: main_issue_form
+  #           requested_slot: motivation
+
+
+
+  issues_profile:
+    type: any
+    initial_value: {}
+    influence_conversation: false
     mappings:
       - type: custom
 
-  talk_type:
-    type: text
-    influence_conversation: true
+  consumption_profile:
+    type: any
+    initial_value: {}
+    influence_conversation: false
     mappings:
       - type: custom
 
+
+  diet_profile:
+    type: any
+    initial_value: {}
+    influence_conversation: false
+    mappings:
+      - type: custom
+
+
+  therapy_profile:
+    type: any
+    initial_value: {}
+    influence_conversation: false
+    mappings:
+      - type: custom
+
+  
+  
 forms:
 
   user_info_form:
@@ -127,13 +251,20 @@ forms:
       - health_condition
 
 
+  main_issue_form:
+    required_slots:
+      - context
+      - triggers
+      - intensity
+      - impact
+      - motivation
+
 
 
 
 responses:
 
-  # First convo 
-
+  
   utter_initial_greeting:
   - text: "Hi!. Before we start, is this your first time talking with a chatbot like me?"
   - text: "Hello! I'm here to help you. Before we begin, is this your first time chatting with a chatbot like me?"
@@ -239,11 +370,31 @@ responses:
     - text: "What do you think is the main issue troubling you right now?"
     - text: "What's worrying you the most at the moment?"
     - text: "Is there something specific that’s making you feel worried?"
+    
+  utter_ask_context:
+    - text: "In which situations do you usually experience it?"
+    - text: "In which moments or places does it tend to show up?"
+    - text: "Can you tell me about a situation where you usually feel it?"
+
+  utter_ask_triggers:
+    - text: "What do you think usually triggers it?"
+    - text: "Are there specific things or events that usually set it off?"
+    - text: "What do you notice tends to make it worse or bring it up?"
 
   utter_ask_intensity:
-    - text: "On a scale from 1 to 10, how much does this problem worry you?"
-    - text: "How intense is your concern about this problem, from 1 to 10?"
-    - text: "How worried are you about this problem, from 1 to 10?"
+    - text: "On a scale from 0 to 10, how intense is it on average?"
+    - text: "If 0 means nothing and 10 means the strongest possible, where would you place it?"
+    - text: "How strong does it usually feel on a 0–10 scale?"
+
+  utter_ask_impact:
+    - text: "How does it affect your daily life?"
+    - text: "In what ways does it interfere with your everyday activities?"
+    - text: "How does it influence your life, work, or relationships?"
+
+  utter_ask_motivation:
+    - text: "Would you like to work on managing or reducing it?"
+    - text: "Would you like to try working on ways to handle it better?"
+    - text: "Do you feel motivated to make some changes around it?"
 
   utter_you_are_welcome:
     - text: "You're welcome! I'm here to help you."
@@ -258,10 +409,11 @@ actions:
   - action_personalized_greeting
   - action_submit_user_info_form
   - action_extract_name
-  - action_classify_topic
-  - action_classify_talk_type
   - action_classify_user_occupation
   - action_classify_user_interests
   - action_classify_user_health_condition
   - validate_user_info_form
+  - action_update_psych_profile
+  - action_check_current_issue
+  - action_submit_main_issue_form
 

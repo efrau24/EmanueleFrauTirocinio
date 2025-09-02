@@ -1,7 +1,7 @@
 from typing import Any, Optional, Text, Dict, List
 from rasa_sdk import Action, Tracker
 from rasa_sdk.executor import CollectingDispatcher
-from rasa_sdk.events import SlotSet, ActiveLoop
+from rasa_sdk.events import SlotSet, ActiveLoop, FollowupAction
 from rasa_sdk.types import DomainDict
 from rasa_sdk.forms import FormValidationAction
 from sentence_transformers import SentenceTransformer, util
@@ -9,6 +9,7 @@ from transformers import pipeline, BertTokenizer, BertForSequenceClassification,
 import torch
 import requests
 import logging
+import json 
 
 logger = logging.getLogger(__name__)
 
@@ -329,20 +330,6 @@ def classify_health_condition_instructor(user_input, threshold=0.8, top_k=None):
 
 
 
-classifier = pipeline(
-    "zero-shot-classification",
-    model="facebook/bart-large-mnli",
-    device=device,
-    use_fast=True
-)            
-
-candidate_labels = [
-    "anxiety", "stress", "nutrition", "physical activity", "weight", "healty eating"
-    "medication adherence", "sleep", "smoking", "alcohol", "relationships",
-    "motivation", "substance use", "self-esteem"
-]
-
-  
 
 # Azioni personalizzate per Rasa
 
@@ -385,51 +372,6 @@ class ActionExtractName(Action):
 
 
 
-class ActionClassifyTalkType(Action):
-
-    def name(self) -> Text:
-        return "action_classify_talk_type"
-    
-    def __init__(self):
-        self.tokenizer = BertTokenizer.from_pretrained("./best_model")
-        self.model = BertForSequenceClassification.from_pretrained("./best_model")
-        self.model.eval()
-    
-    def run(self, dispatcher, tracker, domain):
-
-        user_message = tracker.latest_message.get("text")
-
-        model_inputs = self.tokenizer(
-        user_message, 
-        truncation=True, 
-        padding="max_length", 
-        max_length=128, 
-        return_tensors="pt"
-        )
-
-        with torch.no_grad():
-            outputs = self.model(**model_inputs)
-            logits = outputs.logits
-            predicted_label = torch.argmax(logits, dim=1).item()
-            prob = torch.softmax(logits, dim=1)[0][predicted_label].item()
-
-        if predicted_label == 0:
-            predicted_str = "change"
-            dispatcher.utter_message(text="I'm glad you're motivated to change!")
-        else:
-            predicted_str = "sustain"
-            dispatcher.utter_message(text="I understand, sometimes change can feel hard to face.")
-
-
-        logger.info(f"text: {user_message}")
-        logger.info(f"Label: {predicted_str}")
-        logger.info(f"Confidence: {prob:.2f}")
-
-        return[SlotSet("talk_type", predicted_str)]
-    
-
-
-
 class ActionClassifyUserOccupation(Action):
 
     def name(self) -> Text:
@@ -439,32 +381,38 @@ class ActionClassifyUserOccupation(Action):
             tracker: Tracker,
             domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
 
-        user_message = tracker.latest_message.get("text")
+        # Controllo se lo slot è già pieno
+        current_value = tracker.get_slot("occupation")
+        if current_value:
+            return []  # non sovrascrivo
 
+        user_message = tracker.latest_message.get("text")
         occupation = classify_occupations_instructor(user_message, threshold=0.8, top_k=2)
 
-        
-        return [SlotSet("occupation", occupation)]
-    
+        return [SlotSet("occupation", user_message)]
+
+
 
 class ActionClassifyUserInterests(Action):
 
     def name(self) -> Text:
         return "action_classify_user_interests"
     
-
     def run(self, dispatcher: CollectingDispatcher,
             tracker: Tracker,
             domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
 
-        user_message = tracker.latest_message.get("text")
+        # Controllo se lo slot è già pieno
+        current_value = tracker.get_slot("interests")
+        if current_value:
+            return []  # non sovrascrivo
 
+        user_message = tracker.latest_message.get("text")
         results = classify_interests_with_macro(user_message, threshold=0.8, top_k=3)
 
         fine_labels = results["fine_labels"]
         macro_labels = results["macro_labels"]
 
-        # Imposta entrambi gli slot
         return [
             SlotSet("interests", macro_labels),
             SlotSet("sub_interests", fine_labels)
@@ -481,48 +429,15 @@ class ActionClassifyUserHealthCondition(Action):
             tracker: Tracker,
             domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
 
-        user_message = tracker.latest_message.get("text")
+        # Controllo se lo slot è già pieno
+        current_value = tracker.get_slot("health_condition")
+        if current_value:
+            return []  # non sovrascrivo
 
+        user_message = tracker.latest_message.get("text")
         selected_health_labels = classify_health_condition_instructor(user_message, threshold=0.8, top_k=3)
 
-        
-        return [SlotSet("health_condition", selected_health_labels)]
-
-
-
-
-class ActionClassifyTopic(Action):
-
-    def name(self) -> Text:
-        return "action_classify_topic"
-
-    def run(self, dispatcher: CollectingDispatcher,
-            tracker: Tracker,
-            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
-
-        user_message = tracker.latest_message.get("text")
-
-        topics = tracker.get_slot("topic_list") or []
-     
-        result = classifier(user_message, candidate_labels, multi_label=True)
-        topic = result["labels"][0]
-        score = result["scores"][0]
-
-        if score > 0.8:
-            
-            if topic not in topics:
-                updated_topics = topics + [topic]
-            else: 
-                updated_topics = topics
-
-            return [
-                SlotSet("topic_list", updated_topics),
-                SlotSet("current_topic", topic)]
-        else:
-            dispatcher.utter_message(text="I'm not sure I understand the problem, could you explain it a bit more?")
-            return []
-
-
+        return [SlotSet("health_condition", user_message)]
 
 
 class ActionConversationStarted(Action):
@@ -533,9 +448,6 @@ class ActionConversationStarted(Action):
     def run(self, dispatcher, tracker, domain):
         return[SlotSet("conversation_started", True)]
     
-
-    
-
 
 
 class ValidateUserInfoForm(FormValidationAction):
@@ -610,9 +522,9 @@ class ActionSubmitFormUserInfo(Action):
 
         - Reflect back something meaningful they’ve shared (e.g., age, job, health, lifestyle, interests…)
         - Make them feel heard and understood
-        - Finish with "“Where would you like to focus right now to feel better or improve your well-being?"
+        - Finish with "How can i help you today?" to invite them to share more.
         
-        Keep the tone friendly, non-judgmental, and supportive. Do not introduce yourself, greet or repeat your role — just continue the conversation as if you already know each other."""
+        Keep the tone friendly, non-judgmental, and supportive. Do not introduce yourself, greet, repeat your role or talk about yourself — just continue the conversation as if you already know each other."""
 
     async def run(self, dispatcher: CollectingDispatcher,
             tracker: Tracker,
@@ -654,4 +566,224 @@ class ActionSubmitFormUserInfo(Action):
             SlotSet("form_completed", True),
             ActiveLoop(None)
         ]
+    
+
+
+class ActionUpdatePsychProfile(Action):
+
+    def name(self) -> Text:
+        return "action_update_psych_profile"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+
+        # --- RACCOLTA MESSAGGI ---
+        all_user_messages = [e.get("text") for e in tracker.events if e.get("event") == "user"]
+
+        messages_after_form = []
+        form_completed = False
+        for e in tracker.events:
+            if e.get("event") == "action" and e.get("name") == "user_info_form":
+                form_completed = True
+            elif form_completed and e.get("event") == "user":
+                messages_after_form.append(e.get("text"))
+
+        if not all_user_messages:
+            dispatcher.utter_message(text="I don’t have enough info to update your profile yet.")
+            return []
+
+        profile_text_global = "\n".join(all_user_messages)
+        profile_text_recent = "\n".join(messages_after_form) if messages_after_form else ""
+
+        # --- PROMPT LLM ---
+        prompt = f"""
+            You are analyzing a therapeutic conversation.
+
+            GLOBAL CONTEXT:
+            \"\"\"{profile_text_global}\"\"\"
+
+            RECENT CONTEXT:
+            \"\"\"{profile_text_recent}\"\"\"
+
+            Return ONLY a valid JSON in this format, without adding any intensity for issues:
+            {{
+                "issues_profile": {{
+                    "anxiety": {{}},
+                    "depression": {{}},
+                    ecc.
+                }},
+                "mood_general": "positive|neutral|negative",
+                "emotion_dominant": "joy|sadness|fear|anger|calm|hope|etc.",
+                "energy_level": "low|medium|high",
+                "extraversion": 0-10,
+                "emotional_stability": 0-10,
+                "openness": 0-10,
+                "agreeableness": 0-10,
+                "conscientiousness": 0-10
+            }}
+
+            Rules:
+            - Use GLOBAL CONTEXT for personality traits.
+            - Use RECENT CONTEXT for mood, emotion, and energy.
+            - If no issues are mentioned, return an empty issues_profile.
+            """
+
+        try:
+            response = requests.post(
+                "http://localhost:1234/v1/completions",
+                headers={"Content-Type": "application/json"},
+                json={
+                    "model": "your_model_name_here",
+                    "prompt": prompt,
+                    "max_tokens": 400,
+                    "temperature": 0.3
+                },
+                timeout=60
+            )
+            result_text = response.json().get("choices", [{}])[0].get("text", "").strip()
+            first_brace = result_text.find("{")
+            last_brace = result_text.rfind("}")
+            if first_brace == -1 or last_brace == -1:
+                raise ValueError("No JSON found in LLM response")
+            json_text = result_text[first_brace:last_brace+1]
+            profile = json.loads(json_text)
+        except Exception as e:
+            dispatcher.utter_message(text=f"Error parsing LLM response: {e}")
+            return []
+
+        # --- FUNZIONI DI AGGIORNAMENTO ---
+        def update_value(slot_name, new_val, alpha=0.3):
+            old_val = tracker.get_slot(slot_name)
+            if old_val is None:
+                return new_val
+            try:
+                return round((old_val * (1 - alpha)) + (new_val * alpha), 2)
+            except:
+                return new_val
+
+        def merge_issues(old: dict, new: dict, alpha=0.3):
+            merged = dict(old)
+            for issue, values in new.items():
+                if issue not in merged:
+                    merged[issue] = {}  # Non includere intensity
+                else:
+                    merged[issue] = {}  
+            return merged
+        
+
+        # --- AGGIORNAMENTO SLOT ---
+        updated_slots = []
+
+        numeric_slots = ["extraversion", "emotional_stability", "openness", "agreeableness", "conscientiousness"]
+        updated_slots += [SlotSet(slot, update_value(slot, profile.get(slot, 0))) for slot in numeric_slots]
+
+        text_slots = ["mood_general", "emotion_dominant", "energy_level"]
+        updated_slots += [SlotSet(slot, profile.get(slot, "neutral")) for slot in text_slots]
+
+        old_issues = tracker.get_slot("issues_profile") or {}
+        new_issues = profile.get("issues_profile") or {}
+        merged_issues = merge_issues(old_issues, new_issues)
+        updated_slots.append(SlotSet("issues_profile", merged_issues))
+
+        return updated_slots
+
+
+class ActionCheckCurrentIssue(Action):
+    def name(self) -> Text:
+        return "action_check_current_issue"
+
+    async def run(self, dispatcher, tracker, domain) -> List[Dict[Text, Any]]:
+        
+        user_health_issues = classify_occupations_instructor(tracker.get_slot("health_condition"), threshold=0.8, top_k=2)
+        issues_profile = tracker.get_slot("issues_profile") or {}
+
+
+
+
+
+
+    
+
+        return []
+    
+    
+# class ActionSubmitMainIssueForm(Action):
+
+#     def name(self) -> str:
+#         return "action_submit_main_issue_form"
+    
+#     def get_model(self) -> str:
+#         try:
+#             response = requests.get("http://localhost:1234/v1/models")
+#             if response.status_code == 200:
+#                 models = response.json().get("data", [])
+#                 if models:
+#                     return models[0]["id"]
+#         except Exception as e:
+#             print(f"Error: {e}")
+#         return "mistral-7b-instruct-v0.3"
+
+#     def build_prompt(self, current_issue, context, triggers, intensity, impact, motivation) -> str:
+#         return f"""You are an empathetic mental health support chatbot. The user has just completed a set of questions about his current issue.
+
+#         Here is what they've shared:
+
+#             - Current issue: {current_issue}
+#             - Context: {context}
+#             - Triggers: {triggers}
+#             - Intensity: {intensity}
+#             - Impact: {impact}
+#             - Motivation: {motivation}
+
+#         Please:
+#             1. Summarize the user’s concern in simple and compassionate terms.
+#             2. Suggest a gentle, preliminary interpretation of what might be happening 
+#             (avoid clinical labels or diagnoses, just possible patterns).
+#             3. Offer one or two supportive next steps the user might consider.
+
+#             Keep the tone warm, empathetic, non-judgmental, and supportive. 
+#             Do not introduce yourself, do not greet, and do not repeat your role — just respond naturally as if continuing an ongoing conversation.
+#             """
+    
+#     async def run(self, dispatcher: CollectingDispatcher,
+#             tracker: Tracker,
+#             domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+
+#         current_issue = tracker.get_slot("current_issue")
+#         context = tracker.get_slot("context")
+#         triggers = tracker.get_slot("triggers")
+#         intensity = tracker.get_slot("intensity")
+#         impact = tracker.get_slot("impact")
+#         motivation = tracker.get_slot("motivation")
+
+
+#         prompt = self.build_prompt(current_issue, context, triggers, intensity, impact, motivation)
+
+#         model = self.get_model()
+#         headers = { "Content-Type": "application/json" }
+#         payload = {
+#             "model": model,
+#             "messages": [
+#                 {"role": "user", "content": prompt}
+#             ],
+#             "temperature": 0.5
+#         }
+
+#         try:
+#             response = requests.post("http://localhost:1234/v1/chat/completions", json=payload, headers=headers)
+#             if response.status_code == 200:
+#                 reply = response.json()['choices'][0]['message']['content']
+#             else:
+#                 reply = "Thanks for completing the form! If you’d like, feel free to tell me if there’s anything you’d like to work on or explore together."
+#         except Exception as e:
+#             print(f"Error: {e}")
+#             reply = "Thanks for completing the form! If you’d like, feel free to tell me if there’s anything you’d like to work on or explore together."
+
+#         dispatcher.utter_message(text=reply)
+        
+        
+#         return [
+#             SlotSet("main_issue_form_completed", True)
+#             ]
     

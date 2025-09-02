@@ -134,19 +134,6 @@ nlu:
     - I want to change
     - I’m committed to improving
 
-- intent: generic_message
-  examples: |
-    - I’ve been feeling weird lately
-    - I’m very anxious
-    - I’m really stressed
-    - I don't feel confident
-    - I have self-esteem issues
-    - I have problems with food
-    - I don’t feel comfortable with my body
-    - I’m not okay with myself
-    - There are things I’d like to change
-    - I’m feeling really down today
-    - I wish I were happier
 
 - intent: inform_occupation
   examples: |
@@ -322,3 +309,66 @@ nlu:
     - I can’t keep going like this
     - I can’t go on like this
 
+
+- intent: user_problem
+  examples: |
+    - I feel anxious lately
+    - I'm very stressed about work
+    - I think I'm depressed
+    - I'm not sleeping well
+    - I feel lonely
+    - I have low motivation
+    - I feel overwhelmed
+    - I can't concentrate
+    - I feel sad most of the time
+    - I'm worried about my health
+    - I feel insecure
+    - I often feel guilty
+    - I have trouble controlling my anger
+    - I feel emotionally exhausted
+    - I can't stop overthinking
+    - I'm afraid of failing
+    - I feel hopeless
+    - I feel like I have no purpose
+    - I get irritated easily
+    - I feel like nobody understands me
+    - I have panic attacks
+    - I’m struggling with my relationships
+    - I feel constant pressure
+    - I’m losing interest in things I used to enjoy
+    - I don’t feel confident in myself
+    - I feel restless
+    - I can’t relax even when I want to
+    - I feel trapped
+    - I feel worthless
+    - I often feel tense in social situations
+    - I have trouble trusting people
+    - I feel like giving up
+    - I feel numb, like I can’t feel emotions
+    - I’m easily distracted
+    - I have low self-esteem
+    - I feel disconnected from others
+    - I worry too much about the future
+    - I feel unmotivated to do anything
+    - I feel like I'm stuck in a cycle
+    - I feel tired all the time
+    - I’m struggling to balance work and life
+    - I’m constantly doubting myself
+    - I feel like I can’t handle my responsibilities
+    - I feel anxious in crowded places
+    - I feel down every morning
+    - I feel empty inside
+    - I’m worried about my finances
+    - I feel like I’m letting people down
+    - I have difficulty making decisions
+    - I’ve been feeling weird lately
+    - I’m very anxious
+    - I’m really stressed
+    - I don't feel confident
+    - I have self-esteem issues
+    - I have problems with food
+    - I don’t feel comfortable with my body
+    - I’m not okay with myself
+    - There are things I’d like to change
+    - I’m feeling really down today
+    - I wish I were happier
