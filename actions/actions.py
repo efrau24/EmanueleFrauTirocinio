@@ -10,6 +10,7 @@ import torch
 import requests
 import logging
 import json 
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -293,14 +294,12 @@ def classify_interests_with_macro(user_input, threshold=0.4, top_k=None):
 
 
 common_health_labels_en = [
-    "anxiety", "depression", "stress", "insomnia", "low self-esteem", "panic attacks",
-    "burnout", "loneliness", "obsessive-compulsive disorder (OCD)", "post-traumatic stress disorder (PTSD)",
-    "bipolar disorder", "borderline personality disorder", "repressed anger", 
-    "adjustment disorder", "emotional dependency", "binge eating disorder", 
-    "emotional eating",  "obesity", "overweight", "anorexia", "hypertension", 
-    "diabetes", "high cholesterol", "thyroid problems", "heart problems", "chronic pain", "poor nutrition", 
-    "physical inactivity","substance abuse",  "alcoholism", "smoking", "drug addiction", "gambling addiction", 
-    "internet addiction", "social media addiction", "good overall health", "no major health problems"
+    "anxiety", "depression", "stress", "insomnia", "low self-esteem",
+    "panic attacks", "burnout", "loneliness", "ocd", "ptsd",
+    "drug addiction", "alcoholism", "smoking", "gambling addiction",
+    "internet addiction", "social media addiction", "binge eating",
+    "obesity", "anorexia", "poor nutrition", "lifestyle issues",
+    "low motivation"
 ]
 
 intruction_health = "Represent this health condition category:"
@@ -336,6 +335,21 @@ def classify_health_condition_instructor(user_input, threshold=0.8, top_k=None):
 ner_tokenizer = AutoTokenizer.from_pretrained("Davlan/xlm-roberta-base-ner-hrl")
 ner_model = AutoModelForTokenClassification.from_pretrained("Davlan/xlm-roberta-base-ner-hrl")
 ner_pipeline = pipeline("ner", model=ner_model, tokenizer=ner_tokenizer, aggregation_strategy="simple")
+
+
+
+    
+def get_model() -> str:
+    try:
+        response = requests.get("http://localhost:1234/v1/models")
+        if response.status_code == 200:
+            models = response.json().get("data", [])
+            if models:
+                return models[0]["id"]
+    except Exception as e:
+        print(f"Error: {e}")
+    return "mistral-7b-instruct-v0.3"
+
 
 
 class ActionExtractName(Action):
@@ -387,7 +401,6 @@ class ActionClassifyUserOccupation(Action):
             return []  # non sovrascrivo
 
         user_message = tracker.latest_message.get("text")
-        occupation = classify_occupations_instructor(user_message, threshold=0.8, top_k=2)
 
         return [SlotSet("occupation", user_message)]
 
@@ -420,33 +433,32 @@ class ActionClassifyUserInterests(Action):
 
 
 
-class ActionClassifyUserHealthCondition(Action):
+# class ActionClassifyUserHealthCondition(Action):
 
-    def name(self) -> Text:
-        return "action_classify_user_health_condition"
+#     def name(self) -> Text:
+#         return "action_classify_user_health_condition"
     
-    def run(self, dispatcher: CollectingDispatcher,
-            tracker: Tracker,
-            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+#     def run(self, dispatcher: CollectingDispatcher,
+#             tracker: Tracker,
+#             domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
 
-        # Controllo se lo slot è già pieno
-        current_value = tracker.get_slot("health_condition")
-        if current_value:
-            return []  # non sovrascrivo
+#         # Controllo se lo slot è già pieno
+#         current_value = tracker.get_slot("health_condition")
+#         if current_value:
+#             return [FollowupAction("action_extract_issues")]
 
-        user_message = tracker.latest_message.get("text")
-        selected_health_labels = classify_health_condition_instructor(user_message, threshold=0.8, top_k=3)
+#         user_message = tracker.latest_message.get("text")
 
-        return [SlotSet("health_condition", user_message)]
+#         return [SlotSet("health_condition", user_message)]
 
 
-class ActionConversationStarted(Action):
+# class ActionConversationStarted(Action):
 
-    def name(self) -> Text:
-        return "action_conversation_started"
+#     def name(self) -> Text:
+#         return "action_conversation_started"
     
-    def run(self, dispatcher, tracker, domain):
-        return[SlotSet("conversation_started", True)]
+#     def run(self, dispatcher, tracker, domain):
+#         return[SlotSet("conversation_started", True)]
     
 
 
@@ -495,19 +507,8 @@ class ActionSubmitFormUserInfo(Action):
 
     def name(self) -> str:
         return "action_submit_user_info_form"
-    
-    def get_model(self) -> str:
-        try:
-            response = requests.get("http://localhost:1234/v1/models")
-            if response.status_code == 200:
-                models = response.json().get("data", [])
-                if models:
-                    return models[0]["id"]
-        except Exception as e:
-            print(f"Error: {e}")
-        return "mistral-7b-instruct-v0.3"
 
-    def build_prompt(self, name, age, occupation, interests, health_condition) -> str:
+    def build_prompt(self, name, age, occupation, interests) -> str:
         return f"""You are an empathetic mental health support chatbot. The user has just told you a bit about themselves through a short exchange.
 
         Here is what they've shared:
@@ -516,11 +517,10 @@ class ActionSubmitFormUserInfo(Action):
         - Age: {age}
         - Occupation: {occupation}
         - Interests: {interests}
-        - Health condition: {health_condition}
 
         Now, write a short, warm, and natural-sounding message that shows you’ve understood their situation. Your message should:
 
-        - Reflect back something meaningful they’ve shared (e.g., age, job, health, lifestyle, interests…)
+        - Reflect back something meaningful they’ve shared (e.g., age, job, lifestyle, interests…)
         - Make them feel heard and understood
         - Finish with "How can i help you today?" to invite them to share more.
         
@@ -534,18 +534,17 @@ class ActionSubmitFormUserInfo(Action):
         age = tracker.get_slot("age")
         occupation = tracker.get_slot("occupation")
         interests = tracker.get_slot("interests")
-        health_condition = tracker.get_slot("health_condition")
 
-        prompt = self.build_prompt(name, age, occupation, interests, health_condition)
+        prompt = self.build_prompt(name, age, occupation, interests)
 
-        model = self.get_model()
+        model = get_model()
         headers = { "Content-Type": "application/json" }
         payload = {
             "model": model,
             "messages": [
                 {"role": "user", "content": prompt}
             ],
-            "temperature": 0.5
+            "temperature": 0.2
         }
 
         try:
@@ -568,222 +567,507 @@ class ActionSubmitFormUserInfo(Action):
         ]
     
 
+# --- 1. Extraction of issues from user messages ---
+class ActionExtractIssues(Action):
+    def name(self) -> Text:
+        return "action_extract_issues"
+    
+    #         1. Write a short, warm, natural-sounding reply that shows understanding.
 
-class ActionUpdatePsychProfile(Action):
+    def build_prompt(self, message) -> str:
+        return f"""You are an empathetic health support chatbot. 
+        The user has just told you something about their mental health or lifestyle.
+
+        Here is what they've shared: "{message}"
+
+        Your tasks:
+        Identify ALL relevant issues in their message and classify them into one or more of these categories:
+        - anxiety
+        - depression
+        - stress
+        - insomnia
+        - low self-esteem
+        - panic attacks
+        - burnout
+        - loneliness
+        - OCD
+        - PTSD
+        - drug addiction
+        - alcoholism
+        - smoking
+        - gambling addiction
+        - internet addiction
+        - social media addiction
+        - binge eating
+        - obesity
+        - anorexia
+        - poor nutrition
+        - lifestyle issues
+
+        If the issues seems realted, include only the most relevant one. If no issues are mentioned, return an empty list.
+
+        Return your answer strictly in this JSON format:
+        {{
+        "labels": ["<category1>", "<category2>", ...]
+        }}"""
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any]
+    ) -> List[Dict[Text, Any]]:
+
+        last_message = tracker.latest_message.get("text", "")
+        if not last_message:
+            return []
+
+        prompt = self.build_prompt(last_message)
+        model = get_model()
+        headers = {"Content-Type": "application/json"}
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.5
+        }
+
+        try:
+            response = requests.post(
+                "http://localhost:1234/v1/chat/completions",
+                json=payload,
+                headers=headers
+            )
+            if response.status_code == 200:
+                content = response.json()['choices'][0]['message']['content']
+                try:
+                    data = json.loads(content)
+                    labels = data.get("labels", [])
+                    if not isinstance(labels, list):
+                        labels = [labels]
+                except Exception as e:
+                    print(f"JSON parsing error: {e}")
+                    labels = []
+            else:
+                
+                labels = []
+
+        except Exception as e:
+            print(f"Error: {e}")
+            labels = []
+
+        
+
+        old_issues = tracker.get_slot("issues_profile") or {}
+        new_issues = {label: {} for label in labels}
+        merged_issues = {**old_issues, **new_issues}
+
+        return [SlotSet("issues_profile", merged_issues)]
+    
+
+
+class ActionAskFocusIssue(Action):
+    def name(self) -> Text:
+        return "action_ask_focus_issue"
+    
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any]
+    ) -> List[Dict[Text, Any]]:
+        
+        issues = tracker.get_slot("issues_profile") or {}
+
+        # Normalizza in dict per sicurezza
+        if isinstance(issues, list):
+            issues = {i: 1.0 for i in issues}
+
+        if not issues:
+            return []
+        elif len(issues) == 1:
+            issue = list(issues.keys())[0]
+            return [
+                SlotSet("current_issue", issue),
+                FollowupAction(name="action_activate_form")
+            ]
+        else:
+            issues_list = ", ".join(issues.keys())
+            dispatcher.utter_message(
+                text=(
+                    f"It sounds like there are several things on your mind: {issues_list}. "
+                    f"Which one feels most important to focus on right now?"
+                )
+            )
+                
+        return []
+
+class ActionSetCurrentIssue(Action):
+    def name(self) -> str:
+        return "action_set_current_issue"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any]
+    ) -> List[Dict[Text, Any]]:
+
+        user_text = tracker.latest_message.get("text")
+
+        # Assumo che la funzione ritorni lista -> prendo primo
+        issue = classify_health_condition_instructor(user_text, threshold=0.8, top_k=1)
+        if isinstance(issue, list):
+            issue = issue[0] if issue else None
+
+        issues_profile = tracker.get_slot("issues_profile") or {}
+
+        if isinstance(issues_profile, dict):
+            remaining_issues = {k: v for k, v in issues_profile.items() if k != issue}
+        elif isinstance(issues_profile, list):
+            remaining_issues = [i for i in issues_profile if i != issue]
+        else:
+            remaining_issues = []
+
+        return [
+            SlotSet("current_issue", issue),
+            SlotSet("remaining_issues", remaining_issues),
+            FollowupAction(name="action_activate_form")
+        ]
+
+
+form_mapping = {
+            # Mood & mental health
+            "anxiety": "mood_form",
+            "depression": "mood_form",
+            "stress": "mood_form",
+            "panic attacks": "mood_form",
+            "burnout": "mood_form",
+            "loneliness": "mood_form",
+            "ocd": "mood_form",
+            "ptsd": "mood_form",
+            "low self-esteem": "self_esteem_form",
+
+            # Sleep
+            "insomnia": "sleep_form",
+
+            # Addictions
+            "drug addiction": "addiction_form",
+            "alcoholism": "addiction_form",
+            "smoking": "addiction_form",
+            "gambling addiction": "addiction_form",
+            "internet addiction": "addiction_form",
+            "social media addiction": "addiction_form",
+
+            # Nutrition & lifestyle
+            "binge eating": "nutrition_form",
+            "obesity": "nutrition_form",
+            "anorexia": "nutrition_form",
+            "poor nutrition": "nutrition_form",
+            "lifestyle issues": "lifestyle_form",
+            "low motivation": "motivation_form",
+        }
+
+class ActionActivateForm(Action):
+    def name(self) -> str:
+        return "action_activate_form"
+    
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any]
+    ) -> List[Dict[Text, Any]]:
+
+        current_issue = tracker.get_slot("current_issue")
+
+        if isinstance(current_issue, list):
+            current_issue = current_issue[0] if current_issue else None
+
+        if not current_issue:
+            return []
+
+        current_issue = current_issue.lower()
+        form_to_activate = form_mapping.get(current_issue)
+
+        if not form_to_activate:
+            return []
+
+       
+        if tracker.active_loop.get('name') == form_to_activate:
+            return []
+
+        
+        return [ActiveLoop(name=form_to_activate),
+                FollowupAction(name=form_to_activate)]
+    
+
+class ActionSaveIssueProfile(Action):
+    def name(self) -> Text:
+        return "action_save_issue_profile"
+
+    def run(
+        self,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any],
+    ) -> List[Dict[Text, Any]]:
+
+        current_issue = tracker.get_slot("current_issue")
+        issues_profile = tracker.get_slot("issues_profile") or {}
+
+        if isinstance(current_issue, list):
+            current_issue = current_issue[0] if current_issue else None
+
+        if not current_issue:
+            return []
+
+
+        
+        form_slots = {
+            "mood_form": ["symptom_description", "duration", "triggers", "impact", "coping_strategies"],
+            "sleep_form": ["sleep_pattern", "sleep_quality", "sleep_duration", "bedtime_routine", "sleep_impact"],
+            "intrusive_thoughts_form": ["intrusive_thoughts_description", "frequency", "intensity", "avoidance", "intrusive_thoughts_impact"],
+            "addiction_form": ["substance_or_behavior", "addiction_frequency", "addiction_triggers", "attempts_to_quit", "addiction_impact"],
+            "nutrition_form": ["eating_habits", "body_image", "nutrition_physical_activity", "nutrition_duration", "nutrition_impact"],
+            "motivation_form": ["motivation_level", "barriers", "goals", "support_system", "strategies_to_increase_motivation"],
+            "self_esteem_form": ["self_perception", "negative_self_talk", "social_interactions", "achievements", "self_esteem_coping_strategies"],
+            "lifestyle_form": ["daily_routine", "lifestyle_physical_activity", "sleep_habits", "lifestyle_nutrition", "stress_management"],
+        }
+
+        
+        form_name = form_mapping.get(current_issue)
+        if not form_name:
+            return []
+
+        slots_to_save = form_slots.get(form_name, [])
+
+        
+        issue_data = {
+            slot: tracker.get_slot(slot)
+            for slot in slots_to_save
+            if tracker.get_slot(slot) is not None
+        }
+        
+        existing_data = issues_profile.get(current_issue, {})
+        
+        updated_data = {**existing_data, **issue_data}
+
+        issues_profile[current_issue] = updated_data
+
+        return [SlotSet("issues_profile", issues_profile)]
+
+
+    
+# --- 2. Updating emotional state (mood) ---
+class ActionUpdateMood(Action):
 
     def name(self) -> Text:
-        return "action_update_psych_profile"
+        return "action_update_mood"
+
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+        
+        recent_message = tracker.latest_message.get("text")
+        if not recent_message:
+            return []
+
+        prompt = f"""
+        Analyze the message and return the current emotional state:
+        \"\"\"{recent_message}\"\"\"
+        
+        Reply in JSON:
+        {{
+            "mood_general": "positive|neutral|negative",
+            "emotion_dominant": "joy|sadness|fear|anger|calm|hope|etc",
+            "energy_level": "low|medium|high"
+        }}
+        """
+
+        try:
+            model = get_model()
+            response = requests.post(
+                "http://localhost:1234/v1/chat/completions",
+                headers={"Content-Type": "application/json"},
+                json={
+                    "model": model,
+                    "prompt": prompt,
+                    "max_tokens": 150,
+                    "temperature": 0.2
+                }
+            )
+            text = response.json()["choices"][0]["text"].strip()
+            json_data = json.loads(text[text.find("{"):text.rfind("}")+1])
+        except Exception as e:
+            dispatcher.utter_message(text=f"Error parsing mood: {e}")
+            return []
+
+        return [
+            SlotSet("mood_general", json_data.get("mood_general", "neutral")),
+            SlotSet("emotion_dominant", json_data.get("emotion_dominant", "calm")),
+            SlotSet("energy_level", json_data.get("energy_level", "medium")),
+        ]
+
+
+# --- 3. Personality profile (Big Five) ---
+
+class ActionUpdatePersonality(Action):
+    def name(self) -> Text:
+        return "action_update_personality"
 
     def run(self, dispatcher: CollectingDispatcher,
             tracker: Tracker,
             domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
 
-        # --- RACCOLTA MESSAGGI ---
-        all_user_messages = [e.get("text") for e in tracker.events if e.get("event") == "user"]
-
-        messages_after_form = []
-        form_completed = False
-        for e in tracker.events:
-            if e.get("event") == "action" and e.get("name") == "user_info_form":
-                form_completed = True
-            elif form_completed and e.get("event") == "user":
-                messages_after_form.append(e.get("text"))
-
-        if not all_user_messages:
-            dispatcher.utter_message(text="I don’t have enough info to update your profile yet.")
+        # prendi tutti i messaggi dell'utente
+        all_messages = [e.get("text") for e in tracker.events if e.get("event") == "user"]
+        if len(all_messages) < 5:  
             return []
 
-        profile_text_global = "\n".join(all_user_messages)
-        profile_text_recent = "\n".join(messages_after_form) if messages_after_form else ""
+        profile_text = "\n".join(all_messages)
 
-        # --- PROMPT LLM ---
         prompt = f"""
-            You are analyzing a therapeutic conversation.
+                Analyze the following conversation and return the Big Five personality traits.
 
-            GLOBAL CONTEXT:
-            \"\"\"{profile_text_global}\"\"\"
+                Conversation:
+                \"\"\"{profile_text}\"\"\"
 
-            RECENT CONTEXT:
-            \"\"\"{profile_text_recent}\"\"\"
-
-            Return ONLY a valid JSON in this format, without adding any intensity for issues:
-            {{
-                "issues_profile": {{
-                    "anxiety": {{}},
-                    "depression": {{}},
-                    ecc.
-                }},
-                "mood_general": "positive|neutral|negative",
-                "emotion_dominant": "joy|sadness|fear|anger|calm|hope|etc.",
-                "energy_level": "low|medium|high",
-                "extraversion": 0-10,
-                "emotional_stability": 0-10,
-                "openness": 0-10,
-                "agreeableness": 0-10,
-                "conscientiousness": 0-10
-            }}
-
-            Rules:
-            - Use GLOBAL CONTEXT for personality traits.
-            - Use RECENT CONTEXT for mood, emotion, and energy.
-            - If no issues are mentioned, return an empty issues_profile.
-            """
+                Reply ONLY with valid JSON (no explanation, no extra text). 
+                Format:
+                {{
+                "extraversion": <number 0-10>,
+                "emotional_stability": <number 0-10>,
+                "openness": <number 0-10>,
+                "agreeableness": <number 0-10>,
+                "conscientiousness": <number 0-10>
+                }}
+                """
 
         try:
+            model = get_model()
             response = requests.post(
-                "http://localhost:1234/v1/completions",
+                "http://localhost:1234/v1/chat/completions",
                 headers={"Content-Type": "application/json"},
                 json={
-                    "model": "your_model_name_here",
-                    "prompt": prompt,
-                    "max_tokens": 400,
-                    "temperature": 0.3
-                },
-                timeout=60
+                    "model": model,
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": (
+                                "You are an assistant that ONLY replies with valid JSON.\n\n"
+                                + prompt
+                            )
+                        }
+                    ],
+                    "temperature": 0.2,
+                    "max_tokens": 200
+                }
             )
-            result_text = response.json().get("choices", [{}])[0].get("text", "").strip()
-            first_brace = result_text.find("{")
-            last_brace = result_text.rfind("}")
-            if first_brace == -1 or last_brace == -1:
-                raise ValueError("No JSON found in LLM response")
-            json_text = result_text[first_brace:last_brace+1]
-            profile = json.loads(json_text)
+            
+
+            text = response.json()["choices"][0]["message"]["content"].strip()
+
+            # estrai solo il blocco JSON con regex
+            match = re.search(r"\{.*\}", text, re.DOTALL)
+            if not match:
+                raise ValueError("No JSON found in model response")
+            
+            json_data = json.loads(match.group())
+
         except Exception as e:
-            dispatcher.utter_message(text=f"Error parsing LLM response: {e}")
+            dispatcher.utter_message(text=f"Error parsing personality: {e}")
             return []
 
-        # --- FUNZIONI DI AGGIORNAMENTO ---
-        def update_value(slot_name, new_val, alpha=0.3):
-            old_val = tracker.get_slot(slot_name)
-            if old_val is None:
-                return new_val
-            try:
-                return round((old_val * (1 - alpha)) + (new_val * alpha), 2)
-            except:
-                return new_val
+        # funzione di smoothing (media pesata)
+        def smooth(slot, new, alpha=0.3):
+            old = tracker.get_slot(slot)
+            if old is None:
+                return new
+            return round((old * (1 - alpha)) + (new * alpha), 2)
 
-        def merge_issues(old: dict, new: dict, alpha=0.3):
-            merged = dict(old)
-            for issue, values in new.items():
-                if issue not in merged:
-                    merged[issue] = {}  # Non includere intensity
-                else:
-                    merged[issue] = {}  
-            return merged
-        
+        return [
+            SlotSet("extraversion", smooth("extraversion", json_data.get("extraversion", 5))),
+            SlotSet("emotional_stability", smooth("emotional_stability", json_data.get("emotional_stability", 5))),
+            SlotSet("openness", smooth("openness", json_data.get("openness", 5))),
+            SlotSet("agreeableness", smooth("agreeableness", json_data.get("agreeableness", 5))),
+            SlotSet("conscientiousness", smooth("conscientiousness", json_data.get("conscientiousness", 5))),
+        ]
+    
+    
+class ActionSubmitIssueForm(Action):
 
-        # --- AGGIORNAMENTO SLOT ---
-        updated_slots = []
+    def name(self) -> str:
+        return "action_submit_issue_form"
+    
+    def get_model(self) -> str:
+        try:
+            response = requests.get("http://localhost:1234/v1/models")
+            if response.status_code == 200:
+                models = response.json().get("data", [])
+                if models:
+                    return models[0]["id"]
+        except Exception as e:
+            print(f"Error: {e}")
+        return "mistral-7b-instruct-v0.3"
 
-        numeric_slots = ["extraversion", "emotional_stability", "openness", "agreeableness", "conscientiousness"]
-        updated_slots += [SlotSet(slot, update_value(slot, profile.get(slot, 0))) for slot in numeric_slots]
+    def build_prompt(self, current_issue: str, issue_data: Dict[str, Any]) -> str:
+        issue_summary = "\n".join(
+            [f"- {slot.replace('_', ' ').capitalize()}: {value}" for slot, value in issue_data.items()]
+        ) if issue_data else "No further details were provided."
 
-        text_slots = ["mood_general", "emotion_dominant", "energy_level"]
-        updated_slots += [SlotSet(slot, profile.get(slot, "neutral")) for slot in text_slots]
+        return f"""You are an empathetic mental health support chatbot. The user has just completed a set of questions about their current issue.
 
-        old_issues = tracker.get_slot("issues_profile") or {}
-        new_issues = profile.get("issues_profile") or {}
-        merged_issues = merge_issues(old_issues, new_issues)
-        updated_slots.append(SlotSet("issues_profile", merged_issues))
+            Here is what they've shared:
 
-        return updated_slots
+                - Current issue: {current_issue}
+                                 {issue_summary}
 
+            Please:
+                1. Summarize the user’s concern in simple and compassionate terms.
+                2. Suggest a gentle, preliminary interpretation of what might be happening 
+                (avoid clinical labels or diagnoses, just possible patterns).
+                3. Offer one or two supportive next steps the user might consider.
 
-class ActionCheckCurrentIssue(Action):
-    def name(self) -> Text:
-        return "action_check_current_issue"
+            Keep the tone warm, empathetic, non-judgmental, and supportive. 
+            Do not introduce yourself, do not greet, and do not repeat your role — just respond naturally as if continuing an ongoing conversation.
+            """
 
-    async def run(self, dispatcher, tracker, domain) -> List[Dict[Text, Any]]:
-        
-        user_health_issues = classify_occupations_instructor(tracker.get_slot("health_condition"), threshold=0.8, top_k=2)
+    async def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+
+        current_issue = tracker.get_slot("current_issue")
         issues_profile = tracker.get_slot("issues_profile") or {}
+        issue_data = issues_profile.get(current_issue, {})
 
+        prompt = self.build_prompt(current_issue, issue_data)
 
+        model = self.get_model()
+        headers = { "Content-Type": "application/json" }
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.2
+        }
 
+        try:
+            response = requests.post("http://localhost:1234/v1/chat/completions", json=payload, headers=headers)
+            if response.status_code == 200:
+                reply = response.json()['choices'][0]['message']['content']
+            else:
+                reply = "Thanks for completing the form! If you’d like, feel free to tell me if there’s anything you’d like to work on or explore together."
+        except Exception as e:
+            print(f"Error: {e}")
+            reply = "Thanks for completing the form! If you’d like, feel free to tell me if there’s anything you’d like to work on or explore together."
 
-
-
-    
-
-        return []
-    
-    
-# class ActionSubmitMainIssueForm(Action):
-
-#     def name(self) -> str:
-#         return "action_submit_main_issue_form"
-    
-#     def get_model(self) -> str:
-#         try:
-#             response = requests.get("http://localhost:1234/v1/models")
-#             if response.status_code == 200:
-#                 models = response.json().get("data", [])
-#                 if models:
-#                     return models[0]["id"]
-#         except Exception as e:
-#             print(f"Error: {e}")
-#         return "mistral-7b-instruct-v0.3"
-
-#     def build_prompt(self, current_issue, context, triggers, intensity, impact, motivation) -> str:
-#         return f"""You are an empathetic mental health support chatbot. The user has just completed a set of questions about his current issue.
-
-#         Here is what they've shared:
-
-#             - Current issue: {current_issue}
-#             - Context: {context}
-#             - Triggers: {triggers}
-#             - Intensity: {intensity}
-#             - Impact: {impact}
-#             - Motivation: {motivation}
-
-#         Please:
-#             1. Summarize the user’s concern in simple and compassionate terms.
-#             2. Suggest a gentle, preliminary interpretation of what might be happening 
-#             (avoid clinical labels or diagnoses, just possible patterns).
-#             3. Offer one or two supportive next steps the user might consider.
-
-#             Keep the tone warm, empathetic, non-judgmental, and supportive. 
-#             Do not introduce yourself, do not greet, and do not repeat your role — just respond naturally as if continuing an ongoing conversation.
-#             """
-    
-#     async def run(self, dispatcher: CollectingDispatcher,
-#             tracker: Tracker,
-#             domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
-
-#         current_issue = tracker.get_slot("current_issue")
-#         context = tracker.get_slot("context")
-#         triggers = tracker.get_slot("triggers")
-#         intensity = tracker.get_slot("intensity")
-#         impact = tracker.get_slot("impact")
-#         motivation = tracker.get_slot("motivation")
-
-
-#         prompt = self.build_prompt(current_issue, context, triggers, intensity, impact, motivation)
-
-#         model = self.get_model()
-#         headers = { "Content-Type": "application/json" }
-#         payload = {
-#             "model": model,
-#             "messages": [
-#                 {"role": "user", "content": prompt}
-#             ],
-#             "temperature": 0.5
-#         }
-
-#         try:
-#             response = requests.post("http://localhost:1234/v1/chat/completions", json=payload, headers=headers)
-#             if response.status_code == 200:
-#                 reply = response.json()['choices'][0]['message']['content']
-#             else:
-#                 reply = "Thanks for completing the form! If you’d like, feel free to tell me if there’s anything you’d like to work on or explore together."
-#         except Exception as e:
-#             print(f"Error: {e}")
-#             reply = "Thanks for completing the form! If you’d like, feel free to tell me if there’s anything you’d like to work on or explore together."
-
-#         dispatcher.utter_message(text=reply)
+        dispatcher.utter_message(text=reply)
         
-        
-#         return [
-#             SlotSet("main_issue_form_completed", True)
-#             ]
-    
+        return [
+            SlotSet("current_issue", None),
+            FollowupAction(name="action_update_personality")
+        ]

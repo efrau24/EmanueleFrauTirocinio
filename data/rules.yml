@@ -29,6 +29,10 @@ rules:
         - requested_slot: null
     - action: action_submit_user_info_form
 
+
+
+
+
 # - rule: User main issue form completion
 #   condition:
 #     - active_loop: main_issue_form
@@ -58,10 +62,16 @@ rules:
     - intent: inform_interests
     - action: action_classify_user_interests
 
-- rule: Classify user health condition
-  steps:
-    - intent: inform_health_condition
-    - action: action_classify_user_health_condition
+# - rule: Classify user health condition
+#   steps:
+#     - intent: inform_health_condition
+#     - action: action_classify_user_health_condition
+
+# - rule: Classify user health condition (good health)
+#   steps:
+#     - intent: inform_good_health
+#     - action: action_classify_user_health_condition
+
 
 - rule: User refuses to provide information
   steps:
@@ -90,7 +100,94 @@ rules:
 
 
 - rule: start profiling after form
+  condition:    
+    - active_loop: null
   steps:
     - intent: user_problem
-    - action: action_update_psych_profile
+    - action: action_extract_issues
+    - action: action_ask_focus_issue
 
+- rule: User provide current issue
+  steps:
+    - intent: user_main_issue
+    - action: action_set_current_issue
+
+# Mood Form
+- rule: Salva i dati del mood form
+  condition:
+    - active_loop: mood_form
+  steps:
+    - action: mood_form
+    - active_loop: null
+    - action: action_save_issue_profile
+    - action: action_submit_issue_form
+
+# Sleep form
+- rule: Salva i dati del sleep form
+  condition:
+    - active_loop: sleep_form
+  steps:
+    - action: sleep_form
+    - active_loop: null
+    - action: action_save_issue_profile
+    - action: action_submit_issue_form
+
+  # Intrusive thoughts form
+- rule: Salva i dati del intrusive thoughts form
+  condition:
+    - active_loop: intrusive_thoughts_form
+  steps:
+    - action: intrusive_thoughts_form
+    - active_loop: null
+    - action: action_save_issue_profile
+    - action: action_submit_issue_form
+
+  # Addiction form
+- rule: Salva i dati del addiction form
+  condition:
+    - active_loop: addiction_form
+  steps:
+    - action: addiction_form
+    - active_loop: null
+    - action: action_save_issue_profile
+    - action: action_submit_issue_form
+
+  # Nutrition form
+- rule: Salva i dati del nutrition form
+  condition:
+    - active_loop: nutrition_form
+  steps:
+    - action: nutrition_form
+    - active_loop: null
+    - action: action_save_issue_profile
+    - action: action_submit_issue_form
+
+  # Motivation form
+- rule: Salva i dati del motivation form
+  condition:
+    - active_loop: motivation_form
+  steps:
+    - action: motivation_form
+    - active_loop: null
+    - action: action_save_issue_profile
+    - action: action_submit_issue_form
+
+  # Self esteem form
+- rule: Salva i dati del self esteem form
+  condition:
+    - active_loop: self_esteem_form
+  steps:
+    - action: self_esteem_form
+    - active_loop: null
+    - action: action_save_issue_profile
+    - action: action_submit_issue_form
+
+  # Lifestyle form
+- rule: Salva i dati del lifestyle form
+  condition:
+    - active_loop: lifestyle_form
+  steps:
+    - action: lifestyle_form
+    - active_loop: null
+    - action: action_save_issue_profile
+    - action: action_submit_issue_form
