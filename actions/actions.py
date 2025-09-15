@@ -678,22 +678,33 @@ class ActionAskFocusIssue(Action):
         domain: Dict[Text, Any]
     ) -> List[Dict[Text, Any]]:
         
-        issues = tracker.get_slot("issues_profile") or {}
+        issues_profile  = tracker.get_slot("issues_profile") or {}
+        pending_issues = []
 
         # Normalizza in dict per sicurezza
-        if isinstance(issues, list):
-            issues = {i: 1.0 for i in issues}
+        if isinstance(issues_profile, list):
+            issues_profile = {i: {} for i in issues_profile}
+        
+        for issue, details in issues_profile.items():
+            if not details:  
+                pending_issues.append(issue)
 
-        if not issues:
+        if not pending_issues:     
+            dispatcher.utter_message(
+                text="Now, if there's anything else you'd like to discuss or explore, feel free to let me know!"
+            )
             return []
-        elif len(issues) == 1:
-            issue = list(issues.keys())[0]
+        elif len(pending_issues) == 1:
+            issue = pending_issues[0]
+            dispatcher.utter_message(
+                text=f"It sounds like you might be dealing with {issue}. Let's focus on that for now."
+            )
             return [
                 SlotSet("current_issue", issue),
                 FollowupAction(name="action_activate_form")
             ]
         else:
-            issues_list = ", ".join(issues.keys())
+            issues_list = ", ".join(pending_issues)
             dispatcher.utter_message(
                 text=(
                     f"It sounds like there are several things on your mind: {issues_list}. "
@@ -1018,7 +1029,8 @@ class ActionSubmitIssueForm(Action):
             [f"- {slot.replace('_', ' ').capitalize()}: {value}" for slot, value in issue_data.items()]
         ) if issue_data else "No further details were provided."
 
-        return f"""You are an empathetic mental health support chatbot. The user has just completed a set of questions about their current issue.
+        return f"""You are an empathetic mental health support chatbot. The user has just completed a set of questions about their current 
+        issue. The user don't know if the issue is true or not, it's just a predict, so avoid clinical labels or diagnoses.
 
             Here is what they've shared:
 
@@ -1067,7 +1079,6 @@ class ActionSubmitIssueForm(Action):
 
         dispatcher.utter_message(text=reply)
         
-        return [
-            SlotSet("current_issue", None),
-            FollowupAction(name="action_update_personality")
-        ]
+        return []
+    
+

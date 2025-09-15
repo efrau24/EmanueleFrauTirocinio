@@ -864,9 +864,9 @@ actions:
   - action_update_mood
   - action_update_personality
   - action_ask_focus_issue
- # - action_submit_main_issue_form
   - action_set_current_issue
   - action_activate_form
   - action_save_issue_profile
   - action_submit_issue_form
+  
   
