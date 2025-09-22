@@ -1099,7 +1099,7 @@ class ValidateInterviewForm(FormValidationAction):
             profile_data = analyze_profile(messages_log)
 
             # Se ho già abbastanza informazioni (>=5 messaggi)
-            if self.enough_information(tracker, user_input) or count :
+            if self.enough_information(tracker, user_input) or count>10:
                 messages_log.append({"role": "assistant", "content": "I've gathered enough information for now. Thank you for sharing!"})
                 return {
                     "user_message": user_input,
