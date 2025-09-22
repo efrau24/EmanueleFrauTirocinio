@@ -12,6 +12,7 @@ rules:
     - intent: greet
     - action: utter_personalized_greeting
 
+
 - rule: Respond to goodbye
   steps:
     - intent: goodbye
@@ -29,6 +30,17 @@ rules:
         - requested_slot: null
     - action: action_submit_user_info_form
 
+- rule: User interview form completion
+  condition:
+    - active_loop: interview_form
+  steps:
+    - action: interview_form
+    - active_loop: null
+    - slot_was_set:
+        - requested_slot: null
+    - action: action_submit_interview_form
+
+
 # Mood Form
 - rule: Salva i dati del mood form
   condition:
@@ -39,8 +51,6 @@ rules:
     - action: action_save_issue_profile
     - action: action_submit_issue_form
     - action: action_ask_focus_issue
-    - action: action_update_personality
-
 
 
 # Sleep form
@@ -53,7 +63,6 @@ rules:
     - action: action_save_issue_profile
     - action: action_submit_issue_form
     - action: action_ask_focus_issue
-    - action: action_update_personality
 
 
 
@@ -68,7 +77,7 @@ rules:
     - action: action_save_issue_profile
     - action: action_submit_issue_form
     - action: action_ask_focus_issue
-    - action: action_update_personality
+
 
 
 
@@ -82,7 +91,7 @@ rules:
     - action: action_save_issue_profile
     - action: action_submit_issue_form
     - action: action_ask_focus_issue
-    - action: action_update_personality
+
 
 
 
@@ -97,8 +106,6 @@ rules:
     - action: action_save_issue_profile
     - action: action_submit_issue_form
     - action: action_ask_focus_issue
-    - action: action_update_personality
-
 
 
 
@@ -112,7 +119,6 @@ rules:
     - action: action_save_issue_profile
     - action: action_submit_issue_form
     - action: action_ask_focus_issue
-    - action: action_update_personality
 
 
   # Self esteem form
@@ -123,9 +129,9 @@ rules:
     - action: self_esteem_form
     - active_loop: null
     - action: action_save_issue_profile
-    - action: action_submit_issue_form
+    - action: action_submit_issue_form  
     - action: action_ask_focus_issue
-    - action: action_update_personality
+
 
   # Lifestyle form
 - rule: Salva i dati del lifestyle form
@@ -137,7 +143,8 @@ rules:
     - action: action_save_issue_profile
     - action: action_submit_issue_form
     - action: action_ask_focus_issue
-    - action: action_update_personality
+
+
 
 
 
@@ -171,20 +178,20 @@ rules:
 
 # custom action rules
 
-- rule: Extract user name 
-  steps:
-    - intent: user_name
-    - action: action_extract_name
+# - rule: Extract user name 
+#   steps:
+#     - intent: user_name
+#     - action: action_extract_name
 
-- rule: Classify user occupation
-  steps:
-    - intent: inform_occupation
-    - action: action_classify_user_occupation
+# - rule: Classify user occupation
+#   steps:
+#     - intent: inform_occupation
+#     - action: action_classify_user_occupation
 
-- rule: Classify user interests
-  steps:
-    - intent: inform_interests
-    - action: action_classify_user_interests
+# - rule: Classify user interests
+#   steps:
+#     - intent: inform_interests
+#     - action: action_classify_user_interests
 
 
 - rule: LLM fallback if not classifiable
@@ -193,15 +200,48 @@ rules:
     - action: action_llm_fallback
 
 
-- rule: start profiling after form
-  condition:    
-    - active_loop: null
-  steps:
-    - intent: user_problem
-    - action: action_extract_issues
-    - action: action_ask_focus_issue
+# - rule: start profiling after form
+#   condition:    
+#     - active_loop: null
+#   steps:
+#     - intent: user_problem
+#     - action: action_extract_issues
+#     - action: action_ask_focus_issue
 
-- rule: User provide current issue
-  steps:
-    - intent: user_main_issue
-    - action: action_set_current_issue
+# - rule: User provide current issue
+#   steps:
+#     - intent: user_main_issue
+#     - action: action_set_current_issue
+
+# - rule: Activate adaptive interview form
+#   condition:
+#     - slot_was_set:
+#         - start_interview: true
+#   steps:
+#     - action: adaptive_interview_form
+#     - action: action_ask_next_question
+
+
+# - rule: Loop adaptive interview
+#   condition:
+#     - active_loop: adaptive_interview_form
+#   steps:
+#     - action: action_ask_next_question
+
+
+# - rule: Handle answers during adaptive interview (user_problem)
+#   condition:
+#     - active_loop: adaptive_interview_form
+#   steps:
+#     - intent: user_problem     # o l'intent che il NLU produce per le risposte libere
+#     - action: action_ask_next_question
+#     - active_loop: adaptive_interview_form
+
+
+# - rule: Handle answers during adaptive interview
+#   condition:
+#     - active_loop: adaptive_interview_form
+#   steps:
+#     - action: action_ask_next_question
+#     - active_loop: adaptive_interview_form
+

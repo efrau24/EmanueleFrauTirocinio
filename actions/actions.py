@@ -352,15 +352,31 @@ def get_model() -> str:
 
 
 
-class ActionExtractName(Action):
+
+
+
+# class ActionConversationStarted(Action):
+
+#     def name(self) -> Text:
+#         return "action_conversation_started"
+    
+#     def run(self, dispatcher, tracker, domain):
+#         return[SlotSet("conversation_started", True)]
+    
+
+class ValidateUserInfoForm(FormValidationAction):
+
     def name(self) -> Text:
-        return "action_extract_name"
-
-    def run(self,
-            dispatcher: CollectingDispatcher,
-            tracker: Tracker,
-            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
-
+        return "validate_user_info_form"
+    
+    def validate_name(
+        self,
+        slot_value: Any,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any],
+    ) -> Dict[Text, Any]:
+        
         user_message = tracker.latest_message.get("text").strip()
 
         entities = ner_pipeline(user_message)
@@ -379,108 +395,11 @@ class ActionExtractName(Action):
 
         if name:
             dispatcher.utter_message(text=f"Nice to meet you, {name}!")
-            return [SlotSet("name", name)]
+            return {"name": name}
         else:
             dispatcher.utter_message(text="Sorry, I couldn’t catch your name.")
-            return []
-
-
-
-class ActionClassifyUserOccupation(Action):
-
-    def name(self) -> Text:
-        return "action_classify_user_occupation"
-    
-    def run(self, dispatcher: CollectingDispatcher,
-            tracker: Tracker,
-            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
-
-        # Controllo se lo slot è già pieno
-        current_value = tracker.get_slot("occupation")
-        if current_value:
-            return []  # non sovrascrivo
-
-        user_message = tracker.latest_message.get("text")
-
-        return [SlotSet("occupation", user_message)]
-
-
-
-class ActionClassifyUserInterests(Action):
-
-    def name(self) -> Text:
-        return "action_classify_user_interests"
-    
-    def run(self, dispatcher: CollectingDispatcher,
-            tracker: Tracker,
-            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
-
-        # Controllo se lo slot è già pieno
-        current_value = tracker.get_slot("interests")
-        if current_value:
-            return []  # non sovrascrivo
-
-        user_message = tracker.latest_message.get("text")
-        results = classify_interests_with_macro(user_message, threshold=0.8, top_k=3)
-
-        fine_labels = results["fine_labels"]
-        macro_labels = results["macro_labels"]
-
-        return [
-            SlotSet("interests", macro_labels),
-            SlotSet("sub_interests", fine_labels)
-        ]
-
-
-
-# class ActionClassifyUserHealthCondition(Action):
-
-#     def name(self) -> Text:
-#         return "action_classify_user_health_condition"
-    
-#     def run(self, dispatcher: CollectingDispatcher,
-#             tracker: Tracker,
-#             domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
-
-#         # Controllo se lo slot è già pieno
-#         current_value = tracker.get_slot("health_condition")
-#         if current_value:
-#             return [FollowupAction("action_extract_issues")]
-
-#         user_message = tracker.latest_message.get("text")
-
-#         return [SlotSet("health_condition", user_message)]
-
-
-# class ActionConversationStarted(Action):
-
-#     def name(self) -> Text:
-#         return "action_conversation_started"
-    
-#     def run(self, dispatcher, tracker, domain):
-#         return[SlotSet("conversation_started", True)]
-    
-
-
-class ValidateUserInfoForm(FormValidationAction):
-
-    def name(self) -> Text:
-        return "validate_user_info_form"
-    
-    def validate_name(
-        self,
-        slot_value: Any,
-        dispatcher: CollectingDispatcher,
-        tracker: Tracker,
-        domain: Dict[Text, Any],
-    ) -> Dict[Text, Any]:
-
-        
-        if isinstance(slot_value, str) and slot_value.strip():
-            return {"name": slot_value.strip()}
-        else:
-            dispatcher.utter_message(text="Please insert a valid name.")
             return {"name": None}
+            
             
     def validate_age(
         self,
@@ -501,6 +420,34 @@ class ValidateUserInfoForm(FormValidationAction):
             dispatcher.utter_message(text="Age must be a number.")
             return {"age": None}
 
+    def validate_occupation(
+        self,
+        slot_value: Any,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any],
+    ) -> Dict[Text, Any]:
+
+        user_message = tracker.latest_message.get("text")
+        return {"occupation": user_message}
+
+    def validate_interests(
+        self,
+        slot_value: Any,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: Dict[Text, Any],
+    ) -> Dict[Text, Any]:
+
+        user_message = tracker.latest_message.get("text")
+        results = classify_interests_with_macro(slot_value, threshold=0.5, top_k=3)
+        macro_labels = results["macro_labels"]
+        fine_labels = results["fine_labels"]
+
+        return {
+            "interests": user_message,
+            "sub_interests": fine_labels
+            }
 
 
 class ActionSubmitFormUserInfo(Action):
@@ -511,20 +458,29 @@ class ActionSubmitFormUserInfo(Action):
     def build_prompt(self, name, age, occupation, interests) -> str:
         return f"""You are an empathetic mental health support chatbot. The user has just told you a bit about themselves through a short exchange.
 
-        Here is what they've shared:
+            Here is what they've shared:
 
-        - Name: {name}
-        - Age: {age}
-        - Occupation: {occupation}
-        - Interests: {interests}
+            - Name: {name}
+            - Age: {age}
+            - Occupation: {occupation}
+            - Interests: {interests}
 
-        Now, write a short, warm, and natural-sounding message that shows you’ve understood their situation. Your message should:
+            Now, write a short, warm, and natural-sounding message that shows you’ve understood their situation. 
+            Your message should:
 
-        - Reflect back something meaningful they’ve shared (e.g., age, job, lifestyle, interests…)
-        - Make them feel heard and understood
-        - Finish with "How can i help you today?" to invite them to share more.
-        
-        Keep the tone friendly, non-judgmental, and supportive. Do not introduce yourself, greet, repeat your role or talk about yourself — just continue the conversation as if you already know each other."""
+            - Reflect back something meaningful they’ve shared (e.g., age, job, lifestyle, interests…)
+            - Make them feel heard and understood
+            
+
+
+            IMPORTANT RULES:
+            - Do NOT talk about yourself
+            - Do NOT say you share experiences, jobs, or interests with the user
+            - Do NOT use phrases like "as a fellow...", "I also...", "me too..."
+            - Just focus on the USER and their perspective
+
+            Keep the tone friendly, non-judgmental, and supportive. 
+            Do not introduce yourself, do not greet, do not repeat your role — just continue the conversation naturally as if you already know each other."""
 
     async def run(self, dispatcher: CollectingDispatcher,
             tracker: Tracker,
@@ -563,54 +519,74 @@ class ActionSubmitFormUserInfo(Action):
         
         return [
             SlotSet("form_completed", True),
-            ActiveLoop(None)
+            SlotSet("name", tracker.get_slot("name")),
+            SlotSet("age", tracker.get_slot("age")),
+            SlotSet("occupation", tracker.get_slot("occupation")),
+            SlotSet("interests", tracker.get_slot("interests")),
+            FollowupAction("action_start_interview")
         ]
-    
 
-# --- 1. Extraction of issues from user messages ---
 class ActionExtractIssues(Action):
     def name(self) -> Text:
         return "action_extract_issues"
     
-    #         1. Write a short, warm, natural-sounding reply that shows understanding.
+
 
     def build_prompt(self, message) -> str:
         return f"""You are an empathetic health support chatbot. 
-        The user has just told you something about their mental health or lifestyle.
+            The user has just told you something about their mental health or lifestyle.
 
-        Here is what they've shared: "{message}"
+            Here is what they've shared: "{message}"
 
-        Your tasks:
-        Identify ALL relevant issues in their message and classify them into one or more of these categories:
-        - anxiety
-        - depression
-        - stress
-        - insomnia
-        - low self-esteem
-        - panic attacks
-        - burnout
-        - loneliness
-        - OCD
-        - PTSD
-        - drug addiction
-        - alcoholism
-        - smoking
-        - gambling addiction
-        - internet addiction
-        - social media addiction
-        - binge eating
-        - obesity
-        - anorexia
-        - poor nutrition
-        - lifestyle issues
+            Your task:
+            Identify ALL relevant issues in their message and classify them into one or more of these categories:
+            - anxiety
+            - depression
+            - stress
+            - insomnia
+            - low self-esteem
+            - panic attacks
+            - burnout
+            - loneliness
+            - OCD
+            - PTSD
+            - drug addiction
+            - alcoholism
+            - smoking
+            - gambling addiction
+            - internet addiction
+            - social media addiction
+            - binge eating
+            - obesity
+            - anorexia
+            - poor nutrition
+            - lifestyle issues
 
-        If the issues seems realted, include only the most relevant one. If no issues are mentioned, return an empty list.
+            Rules:
+            - If the user mentions a chain of cause and effect, keep only the primary/root cause (the issue that explains or generates the others).
+            - If multiple independent issues are mentioned, include all of them.
+            - Do not infer or guess issues that are not explicitly mentioned.
+            - If no issues are mentioned, return an empty list.
+            - Return only the JSON object, no extra text.
 
-        Return your answer strictly in this JSON format:
-        {{
-        "labels": ["<category1>", "<category2>", ...]
-        }}"""
+            Priority rules:
+            - Anxiety > Insomnia
+            - Depression > Low self-esteem
+            - Burnout > Stress
 
+            Examples:
+            - "I can't sleep because I feel anxious" → {{"labels": ["anxiety"]}}
+            - "I drink a lot because I'm stressed" → {{"labels": ["stress"]}}
+            - "I feel lonely and anxious" → {{"labels": ["loneliness", "anxiety"]}}
+            - "I eat too much junk food" → {{"labels": ["poor nutrition"]}}
+            - "I have trouble sleeping" → {{"labels": ["insomnia"]}}
+
+            Return your answer strictly in this JSON format:
+            {{
+            "labels": ["<category1>", "<category2>", ...]
+            }}"""
+    
+    
     def run(
         self,
         dispatcher: CollectingDispatcher,
@@ -923,90 +899,6 @@ class ActionUpdateMood(Action):
         ]
 
 
-# --- 3. Personality profile (Big Five) ---
-
-class ActionUpdatePersonality(Action):
-    def name(self) -> Text:
-        return "action_update_personality"
-
-    def run(self, dispatcher: CollectingDispatcher,
-            tracker: Tracker,
-            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
-
-        # prendi tutti i messaggi dell'utente
-        all_messages = [e.get("text") for e in tracker.events if e.get("event") == "user"]
-        if len(all_messages) < 5:  
-            return []
-
-        profile_text = "\n".join(all_messages)
-
-        prompt = f"""
-                Analyze the following conversation and return the Big Five personality traits.
-
-                Conversation:
-                \"\"\"{profile_text}\"\"\"
-
-                Reply ONLY with valid JSON (no explanation, no extra text). 
-                Format:
-                {{
-                "extraversion": <number 0-10>,
-                "emotional_stability": <number 0-10>,
-                "openness": <number 0-10>,
-                "agreeableness": <number 0-10>,
-                "conscientiousness": <number 0-10>
-                }}
-                """
-
-        try:
-            model = get_model()
-            response = requests.post(
-                "http://localhost:1234/v1/chat/completions",
-                headers={"Content-Type": "application/json"},
-                json={
-                    "model": model,
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": (
-                                "You are an assistant that ONLY replies with valid JSON.\n\n"
-                                + prompt
-                            )
-                        }
-                    ],
-                    "temperature": 0.2,
-                    "max_tokens": 200
-                }
-            )
-            
-
-            text = response.json()["choices"][0]["message"]["content"].strip()
-
-            # estrai solo il blocco JSON con regex
-            match = re.search(r"\{.*\}", text, re.DOTALL)
-            if not match:
-                raise ValueError("No JSON found in model response")
-            
-            json_data = json.loads(match.group())
-
-        except Exception as e:
-            dispatcher.utter_message(text=f"Error parsing personality: {e}")
-            return []
-
-        # funzione di smoothing (media pesata)
-        def smooth(slot, new, alpha=0.3):
-            old = tracker.get_slot(slot)
-            if old is None:
-                return new
-            return round((old * (1 - alpha)) + (new * alpha), 2)
-
-        return [
-            SlotSet("extraversion", smooth("extraversion", json_data.get("extraversion", 5))),
-            SlotSet("emotional_stability", smooth("emotional_stability", json_data.get("emotional_stability", 5))),
-            SlotSet("openness", smooth("openness", json_data.get("openness", 5))),
-            SlotSet("agreeableness", smooth("agreeableness", json_data.get("agreeableness", 5))),
-            SlotSet("conscientiousness", smooth("conscientiousness", json_data.get("conscientiousness", 5))),
-        ]
-    
     
 class ActionSubmitIssueForm(Action):
 
@@ -1082,3 +974,239 @@ class ActionSubmitIssueForm(Action):
         return []
     
 
+
+class ActionStartInterview(Action):
+    def name(self) -> str:
+        return "action_start_interview"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+
+        dispatcher.utter_message(text="How are you feeling today? Feel free to share anything on your mind.")
+
+        return [
+            SlotSet("user_message", None),
+            ActiveLoop(name="interview_form"),
+            SlotSet("requested_slot", "user_message")
+            ]
+
+
+
+def analyze_profile(messages_log: str) -> Dict[str, Any]:
+    prompt = f"""
+            Analyze the following conversation log and extract psychological indicators.
+            Conversation so far:
+            {messages_log}
+
+            Instructions:
+            - Reply ONLY with valid JSON (no explanations, no extra text).
+            - Use lists for each field and include short descriptive phrases or keywords.
+            - Base your analysis on the principles of Motivational Interviewing and Cognitive Behavioral Therapy where relevant.
+            - If a category has no relevant information, return an empty list.
+
+            {{
+                "mood": [],                      # e.g., anxious, happy, sad ecc.
+                "personality_traits": [],         # e.g., conscientious, introverted, perfectionist ecc.
+                "lifestyle": [],                  # e.g., poor sleep, active, unhealthy diet ecc.
+                "social_and_relationships": [],    # e.g., supportive friends, isolation, conflicts ecc.
+                "motivation": [],                 # e.g., low motivation, high commitment ecc.
+                "thought_patterns": [],           # e.g., negative self-talk, intrusive thoughts ecc.
+                "possible_disorders": []          # e.g., anxiety, depression, OCD, stress-related disorder ecc.
+            }}
+            """
+
+    try:
+        model = get_model()
+        response = requests.post(
+            "http://localhost:1234/v1/chat/completions",
+            headers={"Content-Type": "application/json"},
+            json={
+                "model": model,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": (
+                            "You are an assistant that ONLY replies with valid JSON.\n\n"
+                            + prompt
+                        )
+                    }
+                ],
+                "temperature": 0.5,
+                "max_tokens": 200
+            }
+        )
+        
+
+        text = response.json()["choices"][0]["message"]["content"].strip()
+
+        # estrai solo il blocco JSON con regex
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+        if not match:
+            raise ValueError("No JSON found in model response")
+        
+        json_data = json.loads(match.group())
+        print(f"Extracted JSON: {json_data}")
+        return json_data
+
+    except Exception as e:
+        print(f"Error parsing profile: {e}")
+        return {}
+
+
+class ValidateInterviewForm(FormValidationAction):
+    def name(self) -> Text:
+        return "validate_interview_form"  
+
+    async def required_slots(
+        self,
+        slots_mapped_in_domain: List[Text],
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: DomainDict,
+    ) -> List[Text]:
+        if tracker.get_slot("end_interview"):
+            return []
+        return ["user_message"]
+    
+    def enough_information(self, tracker: Tracker, user_input: str) -> bool:
+        keys = ["mood", "personality_traits", "lifestyle",
+            "social_and_relationships", "motivation",
+            "thought_patterns", "possible_disorders"]
+        return all(tracker.get_slot(k) and len(tracker.get_slot(k)) > 0 for k in keys)
+
+    def validate_user_message(
+        self,
+        slot_value: Any,
+        dispatcher: CollectingDispatcher,
+        tracker: Tracker,
+        domain: DomainDict,
+    ) -> Dict[Text, Any]:
+        try:
+            if not isinstance(slot_value, str) or not slot_value.strip():
+                dispatcher.utter_message(text="Please share something so I can understand you better.")
+                return {"user_message": None}
+
+            user_input = slot_value.strip()
+            count = (tracker.get_slot("message_count") or 0) + 1
+
+            # Recupero conversazione salvata
+            messages_log = tracker.get_slot("messages_log") or []
+
+            # Aggiungo l'input utente al log
+            messages_log.append({"role": "user", "content": user_input})
+
+            profile_data = analyze_profile(messages_log)
+
+            # Se ho già abbastanza informazioni (>=5 messaggi)
+            if self.enough_information(tracker, user_input) or count :
+                messages_log.append({"role": "assistant", "content": "I've gathered enough information for now. Thank you for sharing!"})
+                return {
+                    "user_message": user_input,
+                    "message_count": count,
+                    "end_interview": True,
+                    "messages_log": messages_log,
+                    "mood": profile_data.get("mood", []),
+                    "personality_traits": profile_data.get("personality_traits", []),
+                    "lifestyle": profile_data.get("lifestyle", []),
+                    "social_and_relationships": profile_data.get("social_and_relationships", []),
+                    "motivation": profile_data.get("motivation", []),
+                    "thought_patterns": profile_data.get("thought_patterns", []),
+                    "possible_disorders": profile_data.get("possible_disorders", []),
+                }
+            name = tracker.get_slot("name")
+            age = tracker.get_slot("age") 
+            occupation = tracker.get_slot("occupation") 
+            interests = tracker.get_slot("interests") 
+
+            # Prompt con storico della conversazione
+            prompt = f"""You are an empathetic mental health support chatbot. 
+                Your goal is to gather as much information as possible about the user’s emotions, thoughts, behaviors, and lifestyle, 
+                so you can build a psychological profile and infer possible issues such as anxiety, depression, stress, unhealthy lifestyle, 
+                or difficulties with diet and self-care. Your role is not to diagnose, but to collect meaningful insights in a supportive and natural way.
+
+                User context:
+                - Name: {name}
+                - Age: {age}
+                - Occupation: {occupation}
+                - Interests: {interests}
+
+                Objective:
+                - Build a general psychological overview of the user.
+                - Use the profile JSON below as a guide: focus your questions on the areas that are still empty ([]).
+                - Never mention the JSON explicitly to the user.
+                - Explore naturally: emotions, thoughts, behaviors, values, relationships, lifestyle, motivation, possible struggles.
+
+                Guidelines:
+                - Always ask **only ONE open-ended question per turn**.
+                - Do not write lists or multiple questions.
+                - Base your next question on the user’s last answer and the conversation so far.
+                - Reflect emotions before asking.
+                - Avoid repeating previous questions or using the same phrasing.
+                - Keep your response short (max 2 sentences), caring and conversational.
+
+                This is the profile you have built so far:
+                {json.dumps(profile_data, indent=4)}
+            """
+
+            # Costruisco messaggi per il modello
+            messages_for_model = [{"role": "user", "content": prompt}]
+            messages_for_model.extend(messages_log)
+            messages_for_model.append({"role": "user", "content": user_input})
+
+            # Chiamata al modello
+            model = get_model()
+            headers = {"Content-Type": "application/json"}
+            payload = {
+                "model": model,
+                "messages": messages_for_model,
+                "temperature": 0.5,
+                "max_tokens": 300
+            }
+
+
+            try:
+                response = requests.post("http://localhost:1234/v1/chat/completions", json=payload, headers=headers)
+                if response.status_code == 200:
+                    reply = response.json()['choices'][0]['message']['content']
+                else:
+                    reply = "Thanks for completing the form! If you’d like, feel free to tell me if there’s anything you’d like to work on or explore together."
+            except Exception as e:
+                print(f"Error: {e}")
+                reply = "Thanks for completing the form! If you’d like, feel free to tell me if there’s anything you’d like to work on or explore together."
+
+            # Aggiungo la risposta del bot al log
+            messages_log.append({"role": "assistant", "content": reply})
+            dispatcher.utter_message(text=reply)
+
+            return {
+                "user_message": user_input,
+                "message_count": count,
+                "end_interview": None,
+                "messages_log": messages_log,
+                "requested_slot": "user_message",
+                "mood": profile_data.get("mood", []),
+                "personality_traits": profile_data.get("personality_traits", []),
+                "lifestyle": profile_data.get("lifestyle", []),
+                "social_and_relationships": profile_data.get("social_and_relationships", []),
+                "motivation": profile_data.get("motivation", []),
+                "thought_patterns": profile_data.get("thought_patterns", []),
+                "possible_disorders": profile_data.get("possible_disorders", []),
+            }
+
+        except Exception as e:
+            dispatcher.utter_message(text=f"Errore interno: {e}")
+            return {"user_message": None}
+        
+
+class ActionSubmitInterviewForm(Action):
+    def name(self) -> str:
+        return "action_submit_interview_form"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+        
+        dispatcher.utter_message(text="Thank you for sharing!")
+
+        return []

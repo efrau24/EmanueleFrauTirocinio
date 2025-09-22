@@ -110,30 +110,6 @@ nlu:
     - I don't want to talk about myself
     - I don't want to share personal details
 
-- intent: good_mood
-  examples: |
-    - I feel good today
-    - I feel happy
-    - I’m happy
-    - I'm in a good mood today
-    - Everything is fine today
-    - I feel well
-    - I’m doing well
-    - I feel positive
-
-- intent: sad_mood
-  examples: |
-    - I’m feeling down
-    - I’m not well
-    - I feel bad
-    - I feel sad
-    - I feel depressed
-
-- intent: motivation
-  examples: |
-    - I want to change
-    - I’m committed to improving
-
 
 - intent: inform_occupation
   examples: |
@@ -215,7 +191,6 @@ nlu:
     - I don’t know what I like
     - I’m not sure about my interests
 
-
 - intent: help_request
   examples: |    
     - I’d like to talk to someone
@@ -239,7 +214,7 @@ nlu:
     - I want to be happier
     - I want to feel more motivated
     - I’d like to quit smoking
-    - I’d like to stop overthinkingHell
+    - I’d like to stop overthinking
 
 - intent: mi_message
   examples: | 

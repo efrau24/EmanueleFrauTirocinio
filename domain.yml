@@ -29,9 +29,7 @@ entities:
   - age
 
 slots:
-
   # --- Conversation Management Slots ---
-
   conversation_started:
     type: bool
     initial_value: false
@@ -46,15 +44,6 @@ slots:
     mappings:
       - type: custom
 
-  form_active:
-    type: bool
-    initial_value: false
-    influence_conversation: true
-    mappings:
-      - type: custom
-
-
-
 
   # --- Static User Info Slots ---
 
@@ -63,7 +52,7 @@ slots:
     type: text
     influence_conversation: false
     mappings:
-      - type: custom
+      - type: from_text
         conditions:
         - active_loop: user_info_form
           requested_slot: name
@@ -83,7 +72,8 @@ slots:
     type: list
     influence_conversation: false
     mappings:
-      - type: custom
+      - type: from_text
+        intent: inform_occupation
         conditions:
           - active_loop: user_info_form
             requested_slot: occupation
@@ -92,7 +82,8 @@ slots:
     type: list
     influence_conversation: false
     mappings:
-      - type: custom
+      - type: from_text
+        intent: inform_interests
         conditions:
           - active_loop: user_info_form
             requested_slot: interests
@@ -102,7 +93,6 @@ slots:
     influence_conversation: false
     mappings:
       - type: custom
-
   
   # health_condition:
   #   type: list
@@ -113,48 +103,6 @@ slots:
   #         - active_loop: user_info_form
   #           requested_slot: health_condition
 
-  # Mood and Emotion
-  mood_general:
-    type: text
-    mappings:
-      - type: custom
-
-  emotion_dominant:
-    type: text
-    mappings:
-      - type: custom
-
-  energy_level:
-    type: text
-    mappings:
-      - type: custom
-
-  # Psychological Profile (Big Five)
-
-  extraversion:
-    type: float
-    mappings:
-      - type: custom
-
-  emotional_stability:
-    type: float
-    mappings:
-      - type: custom
-
-  openness:
-    type: float
-    mappings:
-      - type: custom
-
-  agreeableness:
-    type: float
-    mappings:
-      - type: custom
-
-  conscientiousness:
-    type: float
-    mappings:
-      - type: custom
 
   # Issues slots
 
@@ -205,14 +153,6 @@ slots:
           - active_loop: mood_form
             requested_slot: impact
 
-  coping_strategies:
-    type: text
-    influence_conversation: false
-    mappings:
-      - type: from_text
-        conditions:
-          - active_loop: mood_form
-            requested_slot: coping_strategies
 
 
   # Sleep form
@@ -554,9 +494,91 @@ slots:
       - type: custom
 
 
+  user_message:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: from_text
+
+  end_interview:
+    type: bool
+    initial_value: false
+    influence_conversation: false
+    mappings:
+      - type: custom
+
+  message_count:
+    type: float
+    initial_value: 0
+    influence_conversation: false
+    mappings:
+      - type: custom
+
+  messages_log:
+    type: list
+    initial_value: []
+    influence_conversation: false
+    mappings:
+      - type: custom
+
+
+  mood:
+    type: list
+    initial_value: []
+    influence_conversation: false
+    mappings:
+      - type: custom
   
+  personality_traits:
+    type: list
+    initial_value: []
+    influence_conversation: false
+    mappings:
+      - type: custom
+  
+  lifestyle:
+    type: list
+    initial_value: []
+    influence_conversation: false
+    mappings:
+      - type: custom
+
+  social_and_relationships:
+    type: list
+    initial_value: []
+    influence_conversation: false
+    mappings:
+      - type: custom
+
+  motivation:
+    type: list
+    initial_value: []
+    influence_conversation: false
+    mappings:
+      - type: custom
+
+  thought_patterns:
+    type: list
+    initial_value: []
+    influence_conversation: false
+    mappings:
+      - type: custom
+
+  possible_disorders:
+    type: list
+    initial_value: []
+    influence_conversation: false
+    mappings:
+      - type: custom
+
+
+
   
 forms:
+
+  interview_form:
+    required_slots:
+      - user_message
 
   user_info_form:
     required_slots:
@@ -566,14 +588,13 @@ forms:
       - interests
       # - health_condition
 
-
   mood_form:
     required_slots:
       - symptom_description           # utter_ask_symptom_description
       - duration                      # utter_ask_duration
       - triggers                      # utter_ask_triggers
       - impact                        # utter_ask_impact
-      - coping_strategies             # utter_ask_coping_strategies
+      # - coping_strategies             # utter_ask_coping_strategies
 
   sleep_form:
     required_slots:
@@ -730,8 +751,8 @@ responses:
   utter_ask_impact:
     - text: "In what ways is this affecting your daily life, your activities, or your relationships?"
 
-  utter_ask_coping_strategies:
-    - text: "Have you found anything—big or small—that helps you cope when this comes up?"
+  # utter_ask_coping_strategies:
+  #   - text: "Have you found anything—big or small—that helps you cope when this comes up?"
 
   # Sleep Form
   utter_ask_sleep_pattern:
@@ -862,11 +883,11 @@ actions:
   - validate_user_info_form
   - action_extract_issues
   - action_update_mood
-  - action_update_personality
   - action_ask_focus_issue
   - action_set_current_issue
   - action_activate_form
   - action_save_issue_profile
   - action_submit_issue_form
-  
-  
+  - action_start_interview 
+  - validate_interview_form
+  - action_submit_interview_form

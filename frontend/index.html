@@ -7,11 +7,16 @@
 </head>
 <body>
   <div class="chat-container">
-    <div class="chat-header">Rasa Chatbot</div>
+    <div class="chat-header">
+      <img src="chatbot.png" alt="Logo chatbot" class="logo">
+      <span class="header-title">Rasa Chatbot</span>
+    </div>
     <div class="chat-box" id="chat"></div>
     <div class="chat-input">
-      <input type="text" id="user-input" placeholder="Text here..." />
-      <button class="send-button" onclick="sendMessage()">Send</button>
+      <input type="text" id="user-input" placeholder="Ask anything..." />
+      <button class="send-button" onclick="sendMessage()">
+        <img src="send.png" alt="Send" class="send-icon">
+      </button>
     </div>
   </div>
 
@@ -24,7 +29,7 @@
 
       const avatar = document.createElement("img");
       avatar.classList.add("avatar");
-      avatar.src = sender === "user" ? "user.png" : "bot.png";
+      avatar.src = sender === "user" ? "user.png" : "chatbot.png";
 
       const bubble = document.createElement("div");
       bubble.classList.add("bubble");
