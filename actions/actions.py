@@ -5,18 +5,34 @@ from rasa_sdk.events import SlotSet, ActiveLoop, FollowupAction
 from rasa_sdk.types import DomainDict
 from rasa_sdk.forms import FormValidationAction
 from sentence_transformers import SentenceTransformer, util
-from transformers import pipeline, BertTokenizer, BertForSequenceClassification, AutoTokenizer, AutoModelForTokenClassification
+from transformers import pipeline, RobertaTokenizer, RobertaForSequenceClassification, AutoTokenizer, AutoModelForTokenClassification
 import torch
 import requests
 import logging
 import json 
 import re
+import pandas as pd
+import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Inizializzazione modelli 
+
+# Path modelli 
+TEST_CSV_PATH = "./datasets/test_full.csv"
+MODEL1_PATH = "./results/model1/best_model"
+MODEL2_PATH = "./results/model2/best_model"
+
+df = pd.read_csv(TEST_CSV_PATH)
+tokenizer = RobertaTokenizer.from_pretrained(MODEL1_PATH)
+model1 = RobertaForSequenceClassification.from_pretrained(MODEL1_PATH)
+model2 = RobertaForSequenceClassification.from_pretrained(MODEL2_PATH)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model1.to(device).eval()
+model2.to(device).eval()
+
 
 embedder = SentenceTransformer("hkunlp/instructor-xl", device=device)
 
@@ -657,7 +673,7 @@ class ActionAskFocusIssue(Action):
         issues_profile  = tracker.get_slot("issues_profile") or {}
         pending_issues = []
 
-        # Normalizza in dict per sicurezza
+        
         if isinstance(issues_profile, list):
             issues_profile = {i: {} for i in issues_profile}
         
@@ -703,7 +719,7 @@ class ActionSetCurrentIssue(Action):
 
         user_text = tracker.latest_message.get("text")
 
-        # Assumo che la funzione ritorni lista -> prendo primo
+        
         issue = classify_health_condition_instructor(user_text, threshold=0.8, top_k=1)
         if isinstance(issue, list):
             issue = issue[0] if issue else None
@@ -1040,7 +1056,7 @@ def analyze_profile(messages_log: str) -> Dict[str, Any]:
 
         text = response.json()["choices"][0]["message"]["content"].strip()
 
-        # estrai solo il blocco JSON con regex
+        
         match = re.search(r"\{.*\}", text, re.DOTALL)
         if not match:
             raise ValueError("No JSON found in model response")
@@ -1069,11 +1085,50 @@ class ValidateInterviewForm(FormValidationAction):
             return []
         return ["user_message"]
     
+    
+    
+    
+
+    @staticmethod
+    def classify_message(user_input: str, tokenizer, model1, model2, device):
+        MODEL1_MAP = {0: "neutral", 1: "non_neutral"}
+        MODEL2_MAP = {0: "change", 1: "sustain"}
+
+        
+        inputs = tokenizer(user_input, return_tensors="pt", truncation=True, padding=True).to(device)
+        with torch.no_grad():
+            logits1 = model1(**inputs).logits
+            probs1 = F.softmax(logits1, dim=-1).cpu().numpy()[0]
+        pred1 = int(probs1.argmax())
+        label1 = MODEL1_MAP[pred1]
+        conf1 = float(probs1[pred1])
+
+        if label1 == "neutral":
+            return {"label": "neutral", "confidence": conf1}
+
+        
+        with torch.no_grad():
+            logits2 = model2(**inputs).logits
+            probs2 = F.softmax(logits2, dim=-1).cpu().numpy()[0]
+        pred2 = int(probs2.argmax())
+        label2 = MODEL2_MAP[pred2]
+        conf2 = float(probs2[pred2])
+
+        return {"label": label2, "confidence": conf2}
+
+    
     def enough_information(self, tracker: Tracker, user_input: str) -> bool:
-        keys = ["mood", "personality_traits", "lifestyle",
-            "social_and_relationships", "motivation",
-            "thought_patterns", "possible_disorders"]
-        return all(tracker.get_slot(k) and len(tracker.get_slot(k)) > 0 for k in keys)
+        keys = [
+            "mood",
+            "personality_traits",
+            "lifestyle",
+            "social_and_relationships",
+            "motivation",
+            "thought_patterns",
+            "possible_disorders"
+        ]
+        filled = sum(1 for k in keys if tracker.get_slot(k) and len(tracker.get_slot(k)) > 0)
+        return filled >= 6
 
     def validate_user_message(
         self,
@@ -1090,15 +1145,15 @@ class ValidateInterviewForm(FormValidationAction):
             user_input = slot_value.strip()
             count = (tracker.get_slot("message_count") or 0) + 1
 
-            # Recupero conversazione salvata
-            messages_log = tracker.get_slot("messages_log") or []
+            talk_type = self.classify_message(user_input, tokenizer, model1, model2, device)
 
-            # Aggiungo l'input utente al log
-            messages_log.append({"role": "user", "content": user_input})
+            messages_log = tracker.get_slot("messages_log") or []
+            messages_log = tracker.get_slot("messages_log") or []
+            messages_log.append({"role": "user", "content": user_input, "talk_type": talk_type["label"], "confidence": talk_type["confidence"]})
 
             profile_data = analyze_profile(messages_log)
 
-            # Se ho già abbastanza informazioni (>=5 messaggi)
+            
             if self.enough_information(tracker, user_input) or count>10:
                 messages_log.append({"role": "assistant", "content": "I've gathered enough information for now. Thank you for sharing!"})
                 return {
@@ -1119,7 +1174,7 @@ class ValidateInterviewForm(FormValidationAction):
             occupation = tracker.get_slot("occupation") 
             interests = tracker.get_slot("interests") 
 
-            # Prompt con storico della conversazione
+            
             prompt = f"""You are an empathetic mental health support chatbot. 
                 Your goal is to gather as much information as possible about the user’s emotions, thoughts, behaviors, and lifestyle, 
                 so you can build a psychological profile and infer possible issues such as anxiety, depression, stress, unhealthy lifestyle, 
@@ -1137,24 +1192,26 @@ class ValidateInterviewForm(FormValidationAction):
                 - Never mention the JSON explicitly to the user.
                 - Explore naturally: emotions, thoughts, behaviors, values, relationships, lifestyle, motivation, possible struggles.
 
+
                 Guidelines:
                 - Always ask **only ONE open-ended question per turn**.
                 - Do not write lists or multiple questions.
                 - Base your next question on the user’s last answer and the conversation so far.
                 - Reflect emotions before asking.
                 - Avoid repeating previous questions or using the same phrasing.
+                - Use user context to personalize questions
                 - Keep your response short (max 2 sentences), caring and conversational.
 
                 This is the profile you have built so far:
                 {json.dumps(profile_data, indent=4)}
             """
 
-            # Costruisco messaggi per il modello
+            
             messages_for_model = [{"role": "user", "content": prompt}]
             messages_for_model.extend(messages_log)
             messages_for_model.append({"role": "user", "content": user_input})
 
-            # Chiamata al modello
+           
             model = get_model()
             headers = {"Content-Type": "application/json"}
             payload = {
