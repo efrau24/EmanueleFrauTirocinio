@@ -14,7 +14,9 @@ Chatbot dedicato al supporto della salute mentale e al cambiamento comportamenta
 ## 📦 Requisiti
 - **Python 3.10.11**  
 - **Rasa Open Source** (installabile con `pip install rasa`)  
-- Ambiente virtuale Python (`venv`)  
+- Ambiente virtuale Python (`venv`)
+- **LM Studio** (per l’esecuzione di modelli locali di linguaggio)  
+- **Mistral-7B-Instruct v0.3** (modello LLM utilizzato dal chatbot)  
 
   
 ## 📂 Struttura del progetto
