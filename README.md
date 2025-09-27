@@ -22,7 +22,7 @@ Chatbot dedicato al supporto della salute mentale e al cambiamento comportamenta
 
   
 ## 📂 Struttura del progetto
-- La struttura principale del progetto è la seguente:
+La struttura principale del progetto è la seguente:
 ```plaintext
 ├── actions/          # Azioni personalizzate in Python  
 ├── data/             # Training data: nlu.yml, stories.yml, rules.yml  
