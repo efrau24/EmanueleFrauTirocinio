@@ -17,8 +17,8 @@ Chatbot dedicato al supporto della salute mentale e al cambiamento comportamenta
 - Ambiente virtuale Python (`venv`)
 - **LM Studio** (per l’esecuzione di modelli locali di linguaggio)  
 - **Mistral-7B-Instruct v0.3** (modello LLM utilizzato dal chatbot)
-- **hkunlp/instructor-xl**
-- **Davlan/xlm-roberta-base-ner-hrl**
+- **hkunlp/instructor-xl** (modello di hugging face utilizzato dal chatbot)
+- **Davlan/xlm-roberta-base-ner-hrl** (modello di hugging face utilizzato dal chatbot)
 
   
 ## 📂 Struttura del progetto
