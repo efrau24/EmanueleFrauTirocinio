@@ -19,11 +19,13 @@ results/
 
 # Modelli addestrati
 models/
-best_model/
+model1
+model2
+best_model_old
 *.tar.gz
 
 # Log e output training
-logs/
+
 training_results/
 training_results_2/
 *.log
