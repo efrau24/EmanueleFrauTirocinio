@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-# Inizializzazione modelli 
 
 # Path modelli 
 TEST_CSV_PATH = "./datasets/test_full.csv"
@@ -848,7 +847,6 @@ class ActionSubmitFormUserInfo(Action):
 #         issues_profile[current_issue] = updated_data
 
 #         return [SlotSet("issues_profile", issues_profile)]
-
 
 
 

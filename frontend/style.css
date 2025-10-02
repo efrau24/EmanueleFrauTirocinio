@@ -21,8 +21,8 @@ body {
 
 .chat-header {
   display: flex;
-  align-items: center;   /* centra verticalmente logo e testo */
-  gap: 10px;             /* spazio tra logo e testo */
+  align-items: center;   
+  gap: 10px;             
   padding: 10px;
   background-color:white;
   color: rgb(0, 0, 0);
@@ -31,7 +31,7 @@ body {
 }
 
 .logo {
-  height: 32px;   /* ridimensiona il logo */
+  height: 32px;   
   width: auto;
 }
 
