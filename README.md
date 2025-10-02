@@ -35,7 +35,7 @@ La struttura principale del progetto è la seguente:
 ## ▶️ Come utilizzare
 Clona il repository e spostati nella directory del progetto. Crea ed attiva l’ambiente virtuale:  
 ```bash
-python -m venv venv  
+py -3.10 -m venv venv  
 venv\Scripts\activate   # Windows  
 source venv/bin/activate # Linux/Mac
 ```
