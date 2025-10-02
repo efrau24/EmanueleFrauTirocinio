@@ -20,11 +20,10 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 # Path modelli 
-TEST_CSV_PATH = "./datasets/test_full.csv"
-MODEL1_PATH = "./results/model1/best_model"
-MODEL2_PATH = "./results/model2/best_model"
 
-df = pd.read_csv(TEST_CSV_PATH)
+MODEL1_PATH = "./model1/best_model"
+MODEL2_PATH = "./model2/best_model"
+
 tokenizer = RobertaTokenizer.from_pretrained(MODEL1_PATH)
 model1 = RobertaForSequenceClassification.from_pretrained(MODEL1_PATH)
 model2 = RobertaForSequenceClassification.from_pretrained(MODEL2_PATH)
@@ -33,7 +32,7 @@ model1.to(device).eval()
 model2.to(device).eval()
 
 
-embedder = SentenceTransformer("hkunlp/instructor-xl", device=device)
+embedder = SentenceTransformer("all-MiniLM-L6-v2", device=device)
 
 occupations = [
     # Students / Education
