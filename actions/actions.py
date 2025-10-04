@@ -15,15 +15,14 @@ import pandas as pd
 import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
-
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
-# Path modelli 
-
+# Path modelli addestrati
 MODEL1_PATH = "./model1/best_model"
 MODEL2_PATH = "./model2/best_model"
 
+# inizializzazione modelli
 tokenizer = RobertaTokenizer.from_pretrained(MODEL1_PATH)
 model1 = RobertaForSequenceClassification.from_pretrained(MODEL1_PATH)
 model2 = RobertaForSequenceClassification.from_pretrained(MODEL2_PATH)
@@ -31,8 +30,13 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model1.to(device).eval()
 model2.to(device).eval()
 
-
 embedder = SentenceTransformer("all-MiniLM-L6-v2", device=device)
+
+
+ner_tokenizer = AutoTokenizer.from_pretrained("Davlan/xlm-roberta-base-ner-hrl")
+ner_model = AutoModelForTokenClassification.from_pretrained("Davlan/xlm-roberta-base-ner-hrl")
+ner_pipeline = pipeline("ner", model=ner_model, tokenizer=ner_tokenizer, aggregation_strategy="simple")
+
 
 occupations = [
     # Students / Education
@@ -342,16 +346,7 @@ def classify_health_condition_instructor(user_input, threshold=0.8, top_k=None):
     return [label for label, score in health_score_pairs] if health_score_pairs else ["Other"]
 
 
-
-
-
-ner_tokenizer = AutoTokenizer.from_pretrained("Davlan/xlm-roberta-base-ner-hrl")
-ner_model = AutoModelForTokenClassification.from_pretrained("Davlan/xlm-roberta-base-ner-hrl")
-ner_pipeline = pipeline("ner", model=ner_model, tokenizer=ner_tokenizer, aggregation_strategy="simple")
-
-
-
-    
+# richiesta modello LM Studio    
 def get_model() -> str:
     try:
         response = requests.get("http://localhost:1234/v1/models")
@@ -364,7 +359,7 @@ def get_model() -> str:
     return "mistral-7b-instruct-v0.3"
 
 
-
+# ----- Azioni Personalizzate -----
 
 class ValidateUserInfoForm(FormValidationAction):
 
@@ -850,78 +845,68 @@ class ActionSubmitFormUserInfo(Action):
 
 
     
-class ActionSubmitIssueForm(Action):
+# class ActionSubmitIssueForm(Action):
 
-    def name(self) -> str:
-        return "action_submit_issue_form"
+#     def name(self) -> str:
+#         return "action_submit_issue_form"
     
-    def get_model(self) -> str:
-        try:
-            response = requests.get("http://localhost:1234/v1/models")
-            if response.status_code == 200:
-                models = response.json().get("data", [])
-                if models:
-                    return models[0]["id"]
-        except Exception as e:
-            print(f"Error: {e}")
-        return "mistral-7b-instruct-v0.3"
 
-    def build_prompt(self, current_issue: str, issue_data: Dict[str, Any]) -> str:
-        issue_summary = "\n".join(
-            [f"- {slot.replace('_', ' ').capitalize()}: {value}" for slot, value in issue_data.items()]
-        ) if issue_data else "No further details were provided."
+#     def build_prompt(self, current_issue: str, issue_data: Dict[str, Any]) -> str:
+#         issue_summary = "\n".join(
+#             [f"- {slot.replace('_', ' ').capitalize()}: {value}" for slot, value in issue_data.items()]
+#         ) if issue_data else "No further details were provided."
 
-        return f"""You are an empathetic mental health support chatbot. The user has just completed a set of questions about their current 
-        issue. The user don't know if the issue is true or not, it's just a predict, so avoid clinical labels or diagnoses.
+#         return f"""You are an empathetic mental health support chatbot. The user has just completed a set of questions about their current 
+#         issue. The user don't know if the issue is true or not, it's just a predict, so avoid clinical labels or diagnoses.
 
-            Here is what they've shared:
+#             Here is what they've shared:
 
-                - Current issue: {current_issue}
-                                 {issue_summary}
+#                 - Current issue: {current_issue}
+#                                  {issue_summary}
 
-            Please:
-                1. Summarize the user’s concern in simple and compassionate terms.
-                2. Suggest a gentle, preliminary interpretation of what might be happening 
-                (avoid clinical labels or diagnoses, just possible patterns).
-                3. Offer one or two supportive next steps the user might consider.
+#             Please:
+#                 1. Summarize the user’s concern in simple and compassionate terms.
+#                 2. Suggest a gentle, preliminary interpretation of what might be happening 
+#                 (avoid clinical labels or diagnoses, just possible patterns).
+#                 3. Offer one or two supportive next steps the user might consider.
 
-            Keep the tone warm, empathetic, non-judgmental, and supportive. 
-            Do not introduce yourself, do not greet, and do not repeat your role — just respond naturally as if continuing an ongoing conversation.
-            """
+#             Keep the tone warm, empathetic, non-judgmental, and supportive. 
+#             Do not introduce yourself, do not greet, and do not repeat your role — just respond naturally as if continuing an ongoing conversation.
+#             """
 
-    async def run(self, dispatcher: CollectingDispatcher,
-            tracker: Tracker,
-            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+#     async def run(self, dispatcher: CollectingDispatcher,
+#             tracker: Tracker,
+#             domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
 
-        current_issue = tracker.get_slot("current_issue")
-        issues_profile = tracker.get_slot("issues_profile") or {}
-        issue_data = issues_profile.get(current_issue, {})
+#         current_issue = tracker.get_slot("current_issue")
+#         issues_profile = tracker.get_slot("issues_profile") or {}
+#         issue_data = issues_profile.get(current_issue, {})
 
-        prompt = self.build_prompt(current_issue, issue_data)
+#         prompt = self.build_prompt(current_issue, issue_data)
 
-        model = self.get_model()
-        headers = { "Content-Type": "application/json" }
-        payload = {
-            "model": model,
-            "messages": [
-                {"role": "user", "content": prompt}
-            ],
-            "temperature": 0.2
-        }
+#         model = get_model()
+#         headers = { "Content-Type": "application/json" }
+#         payload = {
+#             "model": model,
+#             "messages": [
+#                 {"role": "user", "content": prompt}
+#             ],
+#             "temperature": 0.2
+#         }
 
-        try:
-            response = requests.post("http://localhost:1234/v1/chat/completions", json=payload, headers=headers)
-            if response.status_code == 200:
-                reply = response.json()['choices'][0]['message']['content']
-            else:
-                reply = "Thanks for completing the form! If you’d like, feel free to tell me if there’s anything you’d like to work on or explore together."
-        except Exception as e:
-            print(f"Error: {e}")
-            reply = "Thanks for completing the form! If you’d like, feel free to tell me if there’s anything you’d like to work on or explore together."
+#         try:
+#             response = requests.post("http://localhost:1234/v1/chat/completions", json=payload, headers=headers)
+#             if response.status_code == 200:
+#                 reply = response.json()['choices'][0]['message']['content']
+#             else:
+#                 reply = "Thanks for completing the form! If you’d like, feel free to tell me if there’s anything you’d like to work on or explore together."
+#         except Exception as e:
+#             print(f"Error: {e}")
+#             reply = "Thanks for completing the form! If you’d like, feel free to tell me if there’s anything you’d like to work on or explore together."
 
-        dispatcher.utter_message(text=reply)
+#         dispatcher.utter_message(text=reply)
         
-        return []
+#         return []
     
 
 
@@ -1128,6 +1113,7 @@ class ValidateInterviewForm(FormValidationAction):
                     "thought_patterns": profile_data.get("thought_patterns", []),
                     "possible_disorders": profile_data.get("possible_disorders", []),
                 }
+            
             name = tracker.get_slot("name")
             age = tracker.get_slot("age") 
             occupation = tracker.get_slot("occupation") 
@@ -1219,10 +1205,67 @@ class ActionSubmitInterviewForm(Action):
     def name(self) -> str:
         return "action_submit_interview_form"
 
+    def build_prompt(self, mood, personality_traits, lifestyle, social_and_relationships, motivation, thought_patterns, possible_disorders, messages_log) -> str:
+            return f"""            
+            You are a professional psychologist and behavioral scientist. You specialize in synthesizing psychological profiles from structured qualitative data. 
+            Your goal is to produce a concise, insightful, and coherent psychological profile that reflects the user’s emotional state, personality, lifestyle, relationships, 
+            motivation, cognitive patterns, and potential psychological challenges, based on the provided information. 
+            
+            Build a psychological profile of a user based on the following information:
+
+                Mood: {mood}
+                Personality Traits: {personality_traits}
+                Lifestyle: {lifestyle}
+                Social and Relationships: {social_and_relationships}
+                Motivation: {motivation}
+                Thought Patterns: {thought_patterns}
+                Possible Disorders: {possible_disorders}
+
+            If needed, you may also refer to the following chat excerpts for additional context: {messages_log}
+
+            Please:
+                1. Summarize the user’s overall psychological profile in a few paragraphs, highlighting the connections between emotional tendencies, cognitive styles, and social behavior.
+                2. Describe the core personality structure and how it influences lifestyle and motivation.
+                3. Mention any potential psychological vulnerabilities or strengths.
+                4. Keep the tone professional, empathetic, and neutral, avoiding any diagnostic claims beyond what the data supports.
+            """
+    
     def run(self, dispatcher: CollectingDispatcher,
             tracker: Tracker,
             domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
         
-        dispatcher.utter_message(text="Thank you for sharing!")
+
+        mood = tracker.get_slot("mood") or [],
+        personality_traits = tracker.get_slot("personality_traits") or [],
+        lifestyle = tracker.get_slot("lifestyle") or [],
+        social_and_relationships = tracker.get_slot("social_and_relationships") or [],
+        motivation = tracker.get_slot("motivation") or [],
+        thought_patterns = tracker.get_slot("thought_patterns") or [],
+        possible_disorders = tracker.get_slot("possible_disorders") or []
+        messages_log = tracker.get_slot("messages_log") or []
+        
+        prompt = self.build_prompt(mood, personality_traits, lifestyle, social_and_relationships, motivation, thought_patterns, possible_disorders, messages_log)
+
+        model = get_model()
+        headers = { "Content-Type": "application/json" }
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.2
+            }
+
+        try:
+            response = requests.post("http://localhost:1234/v1/chat/completions", json=payload, headers=headers)
+            if response.status_code == 200:
+                reply = response.json()['choices'][0]['message']['content']
+            else:
+                reply = "Thanks for completing the form! If you’d like, feel free to tell me if there’s anything you’d like to work on or explore together."
+        except Exception as e:
+            print(f"Error: {e}")
+            reply = "Thanks for completing the form! If you’d like, feel free to tell me if there’s anything you’d like to work on or explore together."
+
+        dispatcher.utter_message(text=reply)
 
         return []
