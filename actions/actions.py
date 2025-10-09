@@ -425,7 +425,7 @@ class ValidateUserInfoForm(FormValidationAction):
         domain: Dict[Text, Any],
     ) -> Dict[Text, Any]:
 
-        user_message = tracker.latest_message.get("text")
+        user_message = tracker.latest_message.get("text").strip()
         return {"occupation": user_message}
 
     def validate_interests(
@@ -436,14 +436,13 @@ class ValidateUserInfoForm(FormValidationAction):
         domain: Dict[Text, Any],
     ) -> Dict[Text, Any]:
 
-        user_message = tracker.latest_message.get("text")
+        user_message = tracker.latest_message.get("text").strip()
         results = classify_interests_with_macro(slot_value, threshold=0.5, top_k=3)
-        macro_labels = results["macro_labels"]
-        fine_labels = results["fine_labels"]
+        # macro_labels = results["macro_labels"]
+        # fine_labels = results["fine_labels"]
 
         return {
             "interests": user_message,
-            "sub_interests": fine_labels
             }
 
 
@@ -1064,7 +1063,7 @@ class ValidateInterviewForm(FormValidationAction):
             "possible_disorders"
         ]
         filled = sum(1 for k in keys if tracker.get_slot(k) and len(tracker.get_slot(k)) > 0)
-        return filled >= 6
+        return filled >= 5
 
     def validate_user_message(
         self,
@@ -1098,8 +1097,7 @@ class ValidateInterviewForm(FormValidationAction):
             })
 
             
-            if self.enough_information(tracker, user_input) or count>10:
-                messages_log.append({"role": "assistant", "content": "I've gathered enough information for now. Thank you for sharing!"})
+            if self.enough_information(tracker, user_input) and count>=6:
                 return {
                     "user_message": user_input,
                     "message_count": count,
@@ -1120,7 +1118,8 @@ class ValidateInterviewForm(FormValidationAction):
             interests = tracker.get_slot("interests") 
 
             
-            prompt = f"""You are an empathetic mental health support chatbot. 
+            prompt = f"""
+                You are an empathetic mental health support chatbot. 
                 Your goal is to gather as much information as possible about the user’s emotions, thoughts, behaviors, and lifestyle, 
                 so you can build a psychological profile and infer possible issues such as anxiety, depression, stress, unhealthy lifestyle, 
                 or difficulties with diet and self-care. Your role is not to diagnose, but to collect meaningful insights in a supportive and natural way.
@@ -1136,34 +1135,39 @@ class ValidateInterviewForm(FormValidationAction):
                 - Use the profile JSON below as a guide: focus your questions on the areas that are still empty ([]).
                 - Never mention the JSON explicitly to the user.
                 - Explore naturally: emotions, thoughts, behaviors, values, relationships, lifestyle, motivation, possible struggles.
-
+s
 
                 Guidelines:
-                - Always ask **only ONE open-ended question per turn**.
-                - Do not write lists or multiple questions or repeat the same questions in one turn.
+                - Keep your response **under 30 words**.
+                - Respond with **no more than 2 sentences**.
+                - Ask **only one open-ended question**.
+                - Avoid lists, multiple suggestions, or long explanations.
+                - Avoid repeating previous questions or using the same phrasing.
                 - Base your next question on the user’s last answer and the conversation so far.
                 - Reflect emotions before asking.
-                - Avoid repeating previous questions or using the same phrasing.
-                - Use user context to personalize questions
-                - Keep your response short (max 2 sentences), caring and conversational.
+                - Use user context to personalize questions.
+
+
 
                 This is the profile you have built so far:
                 {json.dumps(profile_data, indent=4)}
             """
 
             
-            messages_for_model = [{"role": "user", "content": prompt}]
-            messages_for_model.extend(messages_log)
-            messages_for_model.append({"role": "user", "content": user_input})
-
+            messages_for_model = [{"role": "user", "content": prompt}]  
+            messages_for_model.extend(
+                [{"role": msg["role"], "content": msg["content"]} for msg in messages_log]
+            )
            
             model = get_model()
             headers = {"Content-Type": "application/json"}
             payload = {
                 "model": model,
                 "messages": messages_for_model,
-                "temperature": 0.5,
-                "max_tokens": 300
+                "temperature": 0.35,
+                "max_tokens": 100,
+                "frequency_penalty": 0.8,
+                "presence_penalty": 0.6
             }
 
 
