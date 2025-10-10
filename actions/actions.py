@@ -466,11 +466,14 @@ class ActionSubmitFormUserInfo(Action):
 
             - Reflect back something meaningful they’ve shared (e.g., age, job, lifestyle, interests…)
             - Make them feel heard and understood
+            - Respond briefly, in 1-3 sentences, and in a friendly, supportive tone
+
             
 
 
             IMPORTANT RULES:
             - Do NOT talk about yourself
+            - Do NOT end the conversation or ask them to come back later
             - Do NOT say you share experiences, jobs, or interests with the user
             - Do NOT use phrases like "as a fellow...", "I also...", "me too..."
             - Just focus on the USER and their perspective
@@ -1020,8 +1023,7 @@ class ValidateInterviewForm(FormValidationAction):
             return []
         return ["user_message"]
     
-    
-    
+
     
 
     @staticmethod
@@ -1063,7 +1065,7 @@ class ValidateInterviewForm(FormValidationAction):
             "possible_disorders"
         ]
         filled = sum(1 for k in keys if tracker.get_slot(k) and len(tracker.get_slot(k)) > 0)
-        return filled >= 5
+        return filled >= 7
 
     def validate_user_message(
         self,
@@ -1097,7 +1099,41 @@ class ValidateInterviewForm(FormValidationAction):
             })
 
             
-            if self.enough_information(tracker, user_input) and count>=6:
+            if self.enough_information(tracker, user_input) and count >= 10:
+
+                prompt = f"""
+                    You are an empathetic mental health support chatbot.
+                    The user has shared enough information, and your task is to respond with a short, kind, and empathetic closing message.
+                    Keep it concise (1-2 sentences, under 30 words), acknowledge the user's effort, and encourage them to reach out again if needed.
+                    Do NOT mention the profile or analysis, just focus on the user.
+                    Here the conversation so far:
+                    {json.dumps(messages_log, indent=4)}
+                """
+
+                model = get_model()
+                headers = {"Content-Type": "application/json"}
+                payload = {
+                    "model": model,
+                    "messages": prompt,
+                    "temperature": 0.35,
+                    "max_tokens": 100,
+                    "frequency_penalty": 0.8,
+                    "presence_penalty": 0.6
+                }
+                
+                try:
+                    response = requests.post("http://localhost:1234/v1/chat/completions", json=payload, headers=headers)
+                    if response.status_code == 200:
+                        reply = response.json()['choices'][0]['message']['content']
+                    else:
+                        reply = "Thanks for sharing so much about yourself. If you’d like, feel free to tell me if there’s anything you’d like to work on or explore together."
+                except Exception as e:
+                    print(f"Error: {e}")
+                    reply = "Thanks for sharing so much about yourself. If you’d like, feel free to tell me if there’s anything you’d like to work on or explore together."
+
+                dispatcher.utter_message(text=reply)
+
+
                 return {
                     "user_message": user_input,
                     "message_count": count,
@@ -1135,7 +1171,7 @@ class ValidateInterviewForm(FormValidationAction):
                 - Use the profile JSON below as a guide: focus your questions on the areas that are still empty ([]).
                 - Never mention the JSON explicitly to the user.
                 - Explore naturally: emotions, thoughts, behaviors, values, relationships, lifestyle, motivation, possible struggles.
-s
+
 
                 Guidelines:
                 - Keep your response **under 30 words**.
@@ -1145,12 +1181,21 @@ s
                 - Avoid repeating previous questions or using the same phrasing.
                 - Base your next question on the user’s last answer and the conversation so far.
                 - Reflect emotions before asking.
-                - Use user context to personalize questions.
-
-
+                - Base your questions on Motivational Interviewing and Cognitive Behavioral Therapy principles.
+                - Use user context and the profile data to personalize questions. 
 
                 This is the profile you have built so far:
                 {json.dumps(profile_data, indent=4)}
+
+                If the user indicates they want to stop the interview, or if you believe you have enough information to build a comprehensive profile,
+                respond with a short empathetic closing message and append <END_INTERVIEW> at the end.
+                Examples of user messages that indicate they want to stop the interview:
+                - "Thanks, I think that's enough for now."
+                - "That's all I wanted to share."
+                - "I'm fine, I don't have more to say."
+                - "No, I think we're done for today."
+                - "I appreciate your help, but I’m good now."
+                
             """
 
             
@@ -1181,14 +1226,20 @@ s
                 print(f"Error: {e}")
                 reply = "Thanks for completing the form! If you’d like, feel free to tell me if there’s anything you’d like to work on or explore together."
 
-            
+            if "<END_INTERVIEW>" in reply:
+                reply = reply.replace("<END_INTERVIEW>", "").strip()
+                end_interview = True
+            else:
+                end_interview = None
+                
+
             messages_log.append({"role": "assistant", "content": reply})
             dispatcher.utter_message(text=reply)
 
             return {
                 "user_message": user_input,
                 "message_count": count,
-                "end_interview": None,
+                "end_interview": end_interview,
                 "messages_log": messages_log,
                 "requested_slot": "user_message",
                 "mood": profile_data.get("mood", []),
