@@ -1008,6 +1008,48 @@ def analyze_profile(messages_log: str, current_profile: Dict[str, Any] = None) -
         return {}
 
 
+question_clusters = {
+    "emotional_tone": [
+        "How have things been feeling for you lately?",
+        "What’s your mood been like these past few days?",
+        "Do you notice certain moments when you feel lighter or heavier?"
+    ],
+    "thoughts_selfview": [
+        "When you think about yourself these days, what comes to mind?",
+        "Do you ever find your thoughts going in circles?",
+        "What kind of inner dialogue do you tend to have?"
+    ],
+    "energy_rest": [
+        "How have your nights been?",
+        "What’s your energy like throughout the day?"
+    ],
+    "relationships": [
+        "How connected do you feel to people in your life right now?",
+        "Who do you turn to when things are tough?"
+    ],
+    "work_balance": [
+        "How does a typical day look for you lately?",
+        "Is there anything in your routine that feels off balance?"
+    ],
+    "stress_changes": [
+        "Has anything shifted recently that’s been on your mind?",
+        "What’s been weighing on you, even quietly?"
+    ],
+    "coping_selfcare": [
+        "When you need a bit of relief, what do you tend to do?",
+        "Are there small things that bring you comfort?"
+    ],
+    "meaning_outlook": [
+        "What’s been giving you a sense of purpose lately?",
+        "When you look ahead, what do you hope feels different?"
+    ],
+    "change_continuity": [
+        "When you think about yourself a few years ago, what feels different now?",
+        "Are there things you used to enjoy that don’t feel the same anymore?"
+    ]
+}
+
+
 class ValidateInterviewForm(FormValidationAction):
     def name(self) -> Text:
         return "validate_interview_form"  
@@ -1053,6 +1095,48 @@ class ValidateInterviewForm(FormValidationAction):
 
         return {"label": label2, "confidence": conf2}
 
+
+    def user_wants_to_end(self, user_input: str, messages_log) -> bool:
+
+        prompt = f"""
+        You are an assistant analyzing a user message.
+        User message: "{user_input}"
+
+        Return True if the user clearly wants to end the conversation, no longer provide information or help, or if they express a desire to stop.
+
+
+        Convesation so far:
+        {json.dumps(messages_log, indent=4)}
+
+        Examples of ending:
+        - "Thank you."
+        - "I think that's enough for now."
+        - "No, I'm fine, thanks."
+        - "That's all I wanted to share."
+        - "I don't want to continue."
+        - "Goodbye."
+
+        Otherwise, return False. Respond only with True or False.
+        """
+
+        model = get_model()
+        headers = {"Content-Type": "application/json"}
+        payload = {
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0
+        }
+
+        try:
+            response = requests.post("http://localhost:1234/v1/chat/completions", json=payload, headers=headers)
+            if response.status_code == 200:
+                reply = response.json()['choices'][0]['message']['content'].strip().lower()
+                return reply == "true"
+        except Exception as e:
+            print(f"Error checking end intent: {e}")
+
+        return False
+
     
     def enough_information(self, tracker: Tracker, user_input: str) -> bool:
         keys = [
@@ -1064,8 +1148,8 @@ class ValidateInterviewForm(FormValidationAction):
             "thought_patterns",
             "possible_disorders"
         ]
-        filled = sum(1 for k in keys if tracker.get_slot(k) and len(tracker.get_slot(k)) > 0)
-        return filled >= 7
+        total_items = sum(len(tracker.get_slot(key) or []) for key in keys)
+        return total_items >= 8
 
     def validate_user_message(
         self,
@@ -1099,13 +1183,17 @@ class ValidateInterviewForm(FormValidationAction):
             })
 
             
-            if self.enough_information(tracker, user_input) and count >= 10:
+            if (self.enough_information(tracker, user_input) and count >= 4) or self.user_wants_to_end(user_input, messages_log): 
 
                 prompt = f"""
                     You are an empathetic mental health support chatbot.
                     The user has shared enough information, and your task is to respond with a short, kind, and empathetic closing message.
-                    Keep it concise (1-2 sentences, under 30 words), acknowledge the user's effort, and encourage them to reach out again if needed.
-                    Do NOT mention the profile or analysis, just focus on the user.
+                    The last user message was: "{user_input}"
+                    
+                    Guidelines:
+                    - Keep it concise (1-2 sentences, under 30 words) 
+                    - Acknowledge the user's effort, and encourage them to reach out again if needed.
+
                     Here the conversation so far:
                     {json.dumps(messages_log, indent=4)}
                 """
@@ -1114,11 +1202,9 @@ class ValidateInterviewForm(FormValidationAction):
                 headers = {"Content-Type": "application/json"}
                 payload = {
                     "model": model,
-                    "messages": prompt,
-                    "temperature": 0.35,
-                    "max_tokens": 100,
-                    "frequency_penalty": 0.8,
-                    "presence_penalty": 0.6
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.,
+                    "max_tokens": 100
                 }
                 
                 try:
@@ -1155,10 +1241,9 @@ class ValidateInterviewForm(FormValidationAction):
 
             
             prompt = f"""
-                You are an empathetic mental health support chatbot. 
-                Your goal is to gather as much information as possible about the user’s emotions, thoughts, behaviors, and lifestyle, 
-                so you can build a psychological profile and infer possible issues such as anxiety, depression, stress, unhealthy lifestyle, 
-                or difficulties with diet and self-care. Your role is not to diagnose, but to collect meaningful insights in a supportive and natural way.
+                You are an empathetic mental health support chatbot.
+                Your goal is to gather insights about the user’s emotions, thoughts, behaviors, and lifestyle to build a psychological profile, so you should push the user to talk more about themselves.
+                You are not diagnosing; your role is to support and explore naturally.
 
                 User context:
                 - Name: {name}
@@ -1166,35 +1251,17 @@ class ValidateInterviewForm(FormValidationAction):
                 - Occupation: {occupation}
                 - Interests: {interests}
 
-                Objective:
-                - Build a general psychological overview of the user.
-                - Use the profile JSON below as a guide: focus your questions on the areas that are still empty ([]).
-                - Never mention the JSON explicitly to the user.
-                - Explore naturally: emotions, thoughts, behaviors, values, relationships, lifestyle, motivation, possible struggles.
-
-
-                Guidelines:
-                - Keep your response **under 30 words**.
-                - Respond with **no more than 2 sentences**.
-                - Ask **only one open-ended question**.
-                - Avoid lists, multiple suggestions, or long explanations.
-                - Avoid repeating previous questions or using the same phrasing.
-                - Base your next question on the user’s last answer and the conversation so far.
-                - Reflect emotions before asking.
-                - Base your questions on Motivational Interviewing and Cognitive Behavioral Therapy principles.
-                - Use user context and the profile data to personalize questions. 
-
-                This is the profile you have built so far:
+                Profile summary:
                 {json.dumps(profile_data, indent=4)}
 
-                If the user indicates they want to stop the interview, or if you believe you have enough information to build a comprehensive profile,
-                respond with a short empathetic closing message and append <END_INTERVIEW> at the end.
-                Examples of user messages that indicate they want to stop the interview:
-                - "Thanks, I think that's enough for now."
-                - "That's all I wanted to share."
-                - "I'm fine, I don't have more to say."
-                - "No, I think we're done for today."
-                - "I appreciate your help, but I’m good now."
+                Guidelines:
+                - Ask **only one open-ended question**.
+                - Keep your response **under 30 words** and **no more than 2 sentences**.   
+                - Avoid lists, multiple suggestions, or long explanations or multiple messages.
+                - Base your next question on the user’s last answer and the conversation so far.
+                - Reflect the user’s emotions and personalize based on context and profile
+                - Follow basic principle of Motivational Interviewing and Cognitive Behavioral Therapy principles.
+                - Do NOT mention the profile or analysis, just focus on the user.
                 
             """
 
@@ -1210,7 +1277,7 @@ class ValidateInterviewForm(FormValidationAction):
                 "model": model,
                 "messages": messages_for_model,
                 "temperature": 0.35,
-                "max_tokens": 100,
+                "max_tokens": 150,
                 "frequency_penalty": 0.8,
                 "presence_penalty": 0.6
             }
@@ -1262,9 +1329,10 @@ class ActionSubmitInterviewForm(Action):
 
     def build_prompt(self, mood, personality_traits, lifestyle, social_and_relationships, motivation, thought_patterns, possible_disorders, messages_log) -> str:
             return f"""            
-            You are a professional psychologist and behavioral scientist. You specialize in synthesizing psychological profiles from structured qualitative data. 
-            Your goal is to produce a concise, insightful, and coherent psychological profile that reflects the user’s emotional state, personality, lifestyle, relationships, 
-            motivation, cognitive patterns, and potential psychological challenges, based on the provided information. 
+            You are a professional psychologist and behavioral scientist. 
+            You specialize in synthesizing psychological profiles from structured qualitative data. 
+            Your goal is to produce a concise, insightful, and coherent psychological profile that reflects the user’s emotional state, 
+            personality, lifestyle, relationships, motivation, cognitive patterns, and potential psychological challenges, based on the provided information. 
             
             Build a psychological profile of a user based on the following information:
 
