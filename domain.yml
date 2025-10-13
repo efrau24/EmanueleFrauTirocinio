@@ -42,7 +42,14 @@ slots:
     mappings:
       - type: custom
 
-
+  recent_topics:
+    type: list
+    influence_conversation: false
+    mappings:
+      - type: custom
+  
+  
+  
   # --- Static User Info Slots ---
 
   # User basic info

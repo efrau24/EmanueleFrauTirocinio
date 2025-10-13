@@ -452,7 +452,8 @@ class ActionSubmitFormUserInfo(Action):
         return "action_submit_user_info_form"
 
     def build_prompt(self, name, age, occupation, interests) -> str:
-        return f"""You are an empathetic mental health support chatbot. The user has just told you a bit about themselves through a short exchange.
+        return f"""
+        You are an empathetic mental health support chatbot. The user has just told you a bit about themselves through a short exchange.
 
             Here is what they've shared:
 
@@ -1049,10 +1050,12 @@ question_clusters = {
     ]
 }
 
+topics = list(question_clusters.keys())
+topic_embeddings = embedder.encode(topics, convert_to_tensor=True)
 
 class ValidateInterviewForm(FormValidationAction):
     def name(self) -> Text:
-        return "validate_interview_form"  
+        return "validate_interview_form"
 
     async def required_slots(
         self,
@@ -1064,16 +1067,43 @@ class ValidateInterviewForm(FormValidationAction):
         if tracker.get_slot("end_interview"):
             return []
         return ["user_message"]
-    
 
     
+    @staticmethod
+    def detect_topic(user_message: str) -> str:
+        user_emb = embedder.encode(user_message, convert_to_tensor=True)
+        cosine_scores = util.cos_sim(user_emb, topic_embeddings)
+        best_idx = int(cosine_scores.argmax())
+        return topics[best_idx]
+
+    def select_cluster(self, topic: str):
+        return question_clusters.get(topic, question_clusters["emotional_tone"])
 
     @staticmethod
-    def classify_message(user_input: str, tokenizer, model1, model2, device):
+    def select_next_topic(user_message: str, recent_topics: List[str]) -> str:
+        
+        device = topic_embeddings.device if hasattr(topic_embeddings, "device") else torch.device("cpu")
+        
+        user_emb = embedder.encode(user_message, convert_to_tensor=True).to(device)
+     
+        cosine_scores = util.cos_sim(user_emb, topic_embeddings)[0]
+
+        penalties = torch.ones(len(topics), device=device)
+
+        for i, topic in enumerate(topics):
+            if topic in recent_topics:
+                penalties[i] = 0.5  # penalizza topic già usati
+
+        penalized_scores = cosine_scores * penalties
+        best_idx = int(penalized_scores.argmax())
+
+        return topics[best_idx]
+
+    
+    def classify_message(self, user_input: str, tokenizer, model1, model2, device):
         MODEL1_MAP = {0: "neutral", 1: "non_neutral"}
         MODEL2_MAP = {0: "change", 1: "sustain"}
 
-        
         inputs = tokenizer(user_input, return_tensors="pt", truncation=True, padding=True).to(device)
         with torch.no_grad():
             logits1 = model1(**inputs).logits
@@ -1085,7 +1115,6 @@ class ValidateInterviewForm(FormValidationAction):
         if label1 == "neutral":
             return {"label": "neutral", "confidence": conf1}
 
-        
         with torch.no_grad():
             logits2 = model2(**inputs).logits
             probs2 = F.softmax(logits2, dim=-1).cpu().numpy()[0]
@@ -1095,17 +1124,15 @@ class ValidateInterviewForm(FormValidationAction):
 
         return {"label": label2, "confidence": conf2}
 
-
+    
     def user_wants_to_end(self, user_input: str, messages_log) -> bool:
-
         prompt = f"""
         You are an assistant analyzing a user message.
         User message: "{user_input}"
 
         Return True if the user clearly wants to end the conversation, no longer provide information or help, or if they express a desire to stop.
 
-
-        Convesation so far:
+        Conversation so far:
         {json.dumps(messages_log, indent=4)}
 
         Examples of ending:
@@ -1121,11 +1148,7 @@ class ValidateInterviewForm(FormValidationAction):
 
         model = get_model()
         headers = {"Content-Type": "application/json"}
-        payload = {
-            "model": model,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0
-        }
+        payload = {"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0}
 
         try:
             response = requests.post("http://localhost:1234/v1/chat/completions", json=payload, headers=headers)
@@ -1137,7 +1160,6 @@ class ValidateInterviewForm(FormValidationAction):
 
         return False
 
-    
     def enough_information(self, tracker: Tracker, user_input: str) -> bool:
         keys = [
             "mood",
@@ -1149,8 +1171,9 @@ class ValidateInterviewForm(FormValidationAction):
             "possible_disorders"
         ]
         total_items = sum(len(tracker.get_slot(key) or []) for key in keys)
-        return total_items >= 8
+        return total_items >= 7
 
+    
     def validate_user_message(
         self,
         slot_value: Any,
@@ -1165,10 +1188,8 @@ class ValidateInterviewForm(FormValidationAction):
 
             user_input = slot_value.strip()
             count = (tracker.get_slot("message_count") or 0) + 1
-
             talk_type = self.classify_message(user_input, tokenizer, model1, model2, device)
 
-            messages_log = tracker.get_slot("messages_log") or []
             messages_log = tracker.get_slot("messages_log") or []
             messages_log.append({"role": "user", "content": user_input, "talk_type": talk_type["label"], "confidence": talk_type["confidence"]})
 
@@ -1183,67 +1204,59 @@ class ValidateInterviewForm(FormValidationAction):
             })
 
             
-            if (self.enough_information(tracker, user_input) and count >= 4) or self.user_wants_to_end(user_input, messages_log): 
-
+            if (self.enough_information(tracker, user_input) and count >= 6) and self.user_wants_to_end(user_input, messages_log):
                 prompt = f"""
                     You are an empathetic mental health support chatbot.
                     The user has shared enough information, and your task is to respond with a short, kind, and empathetic closing message.
                     The last user message was: "{user_input}"
-                    
-                    Guidelines:
-                    - Keep it concise (1-2 sentences, under 30 words) 
-                    - Acknowledge the user's effort, and encourage them to reach out again if needed.
-
-                    Here the conversation so far:
-                    {json.dumps(messages_log, indent=4)}
                 """
-
                 model = get_model()
                 headers = {"Content-Type": "application/json"}
                 payload = {
-                    "model": model,
+                    "model": model, 
                     "messages": [{"role": "user", "content": prompt}],
-                    "temperature": 0.,
-                    "max_tokens": 100
-                }
-                
+                    "temperature": 0.1, 
+                    "max_tokens": 150
+                    }
+
                 try:
                     response = requests.post("http://localhost:1234/v1/chat/completions", json=payload, headers=headers)
-                    if response.status_code == 200:
-                        reply = response.json()['choices'][0]['message']['content']
-                    else:
-                        reply = "Thanks for sharing so much about yourself. If you’d like, feel free to tell me if there’s anything you’d like to work on or explore together."
+                    reply = response.json()['choices'][0]['message']['content'] if response.status_code == 200 else "Thank you for opening up today. I’m here whenever you’d like to talk again."
                 except Exception as e:
                     print(f"Error: {e}")
-                    reply = "Thanks for sharing so much about yourself. If you’d like, feel free to tell me if there’s anything you’d like to work on or explore together."
+                    reply = "Thank you for opening up today. I’m here whenever you’d like to talk again."
 
                 dispatcher.utter_message(text=reply)
-
-
                 return {
                     "user_message": user_input,
                     "message_count": count,
                     "end_interview": True,
                     "messages_log": messages_log,
-                    "mood": profile_data.get("mood", []),
-                    "personality_traits": profile_data.get("personality_traits", []),
-                    "lifestyle": profile_data.get("lifestyle", []),
-                    "social_and_relationships": profile_data.get("social_and_relationships", []),
-                    "motivation": profile_data.get("motivation", []),
-                    "thought_patterns": profile_data.get("thought_patterns", []),
-                    "possible_disorders": profile_data.get("possible_disorders", []),
+                    **{k: profile_data.get(k, []) for k in profile_data}
                 }
-            
-            name = tracker.get_slot("name")
-            age = tracker.get_slot("age") 
-            occupation = tracker.get_slot("occupation") 
-            interests = tracker.get_slot("interests") 
 
             
+            recent_topics = tracker.get_slot("recent_topics") or []
+            topic = self.select_next_topic(user_input, recent_topics)
+            cluster = self.select_cluster(topic)
+
+            # aggiorna slot con rotazione degli ultimi 3 topic
+            recent_topics.append(topic)
+            if len(recent_topics) > 3:
+                recent_topics.pop(0)
+
+            
+            name = tracker.get_slot("name")
+            age = tracker.get_slot("age")
+            occupation = tracker.get_slot("occupation")
+            interests = tracker.get_slot("interests")
+
             prompt = f"""
                 You are an empathetic mental health support chatbot.
-                Your goal is to gather insights about the user’s emotions, thoughts, behaviors, and lifestyle to build a psychological profile, so you should push the user to talk more about themselves.
-                You are not diagnosing; your role is to support and explore naturally.
+                Your goal is to **explore the user's thoughts, feelings, behaviors, and lifestyle across multiple areas** to build a psychological profile over time. 
+                Do **not** provide coping strategies, advice, or problem-solving suggestions yet. Focus purely on understanding.
+
+                Avoid repeating topics recently discussed ({recent_topics[:-1]}), but try to **encourage the user to reflect on different topics**, not just the current one.
 
                 User context:
                 - Name: {name}
@@ -1254,23 +1267,19 @@ class ValidateInterviewForm(FormValidationAction):
                 Profile summary:
                 {json.dumps(profile_data, indent=4)}
 
+                Current topic: {topic}
+                Potential inspiration questions for exploration: {cluster}
+
                 Guidelines:
-                - Ask **only one open-ended question**.
-                - Keep your response **under 30 words** and **no more than 2 sentences**.   
-                - Avoid lists, multiple suggestions, or long explanations or multiple messages.
-                - Base your next question on the user’s last answer and the conversation so far.
-                - Reflect the user’s emotions and personalize based on context and profile
-                - Follow basic principle of Motivational Interviewing and Cognitive Behavioral Therapy principles.
-                - Do NOT mention the profile or analysis, just focus on the user.
-                
+                - Ask only **one open-ended question** at a time with only one message (max 1 sentences under 40 words).
+                - Be **curious, empathic, and natural**.
+                - Encourage the user to **share insights about multiple topics**, not just the current one.
+                - Avoid repeating recent topics or giving solutions.
             """
 
-            
-            messages_for_model = [{"role": "user", "content": prompt}]  
-            messages_for_model.extend(
-                [{"role": msg["role"], "content": msg["content"]} for msg in messages_log]
-            )
-           
+            messages_for_model = [{"role": "user", "content": prompt}]
+            messages_for_model.extend([{"role": msg["role"], "content": msg["content"]} for msg in messages_log])
+
             model = get_model()
             headers = {"Content-Type": "application/json"}
             payload = {
@@ -1282,23 +1291,12 @@ class ValidateInterviewForm(FormValidationAction):
                 "presence_penalty": 0.6
             }
 
-
             try:
                 response = requests.post("http://localhost:1234/v1/chat/completions", json=payload, headers=headers)
-                if response.status_code == 200:
-                    reply = response.json()['choices'][0]['message']['content']
-                else:
-                    reply = "Thanks for completing the form! If you’d like, feel free to tell me if there’s anything you’d like to work on or explore together."
+                reply = response.json()['choices'][0]['message']['content'] if response.status_code == 200 else "Would you like to share a bit more about how things have been feeling for you lately?"
             except Exception as e:
                 print(f"Error: {e}")
-                reply = "Thanks for completing the form! If you’d like, feel free to tell me if there’s anything you’d like to work on or explore together."
-
-            if "<END_INTERVIEW>" in reply:
-                reply = reply.replace("<END_INTERVIEW>", "").strip()
-                end_interview = True
-            else:
-                end_interview = None
-                
+                reply = "Would you like to share a bit more about how things have been feeling for you lately?"
 
             messages_log.append({"role": "assistant", "content": reply})
             dispatcher.utter_message(text=reply)
@@ -1306,22 +1304,15 @@ class ValidateInterviewForm(FormValidationAction):
             return {
                 "user_message": user_input,
                 "message_count": count,
-                "end_interview": end_interview,
                 "messages_log": messages_log,
+                "recent_topics": recent_topics,
                 "requested_slot": "user_message",
-                "mood": profile_data.get("mood", []),
-                "personality_traits": profile_data.get("personality_traits", []),
-                "lifestyle": profile_data.get("lifestyle", []),
-                "social_and_relationships": profile_data.get("social_and_relationships", []),
-                "motivation": profile_data.get("motivation", []),
-                "thought_patterns": profile_data.get("thought_patterns", []),
-                "possible_disorders": profile_data.get("possible_disorders", []),
+                **{k: profile_data.get(k, []) for k in profile_data}
             }
 
         except Exception as e:
             dispatcher.utter_message(text=f"Errore interno: {e}")
             return {"user_message": None}
-        
 
 class ActionSubmitInterviewForm(Action):
     def name(self) -> str:
