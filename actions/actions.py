@@ -453,34 +453,32 @@ class ActionSubmitFormUserInfo(Action):
 
     def build_prompt(self, name, age, occupation, interests) -> str:
         return f"""
-        You are an empathetic mental health support chatbot. The user has just told you a bit about themselves through a short exchange.
+        You are an empathetic mental health support chatbot continuing an ongoing conversation with the user. 
+        The user has just shared some information about themselves. You should respond naturally and seamlessly, 
+        without any greetings or farewells.
 
-            Here is what they've shared:
+        Here is what they've shared:
+        - Name: {name}
+        - Age: {age}
+        - Occupation: {occupation}
+        - Interests: {interests}
 
-            - Name: {name}
-            - Age: {age}
-            - Occupation: {occupation}
-            - Interests: {interests}
+        Write a short, warm, and natural message (1–3 sentences) that:
+        - Acknowledges and reflects something meaningful they’ve shared (e.g., age, job, hobbies, lifestyle)
+        - Makes them feel heard, understood, and emotionally supported
+        - Flows naturally as part of an ongoing chat (not as a new message)
+        - Finish inviting them to share more about how they’re feeling today.
 
-            Now, write a short, warm, and natural-sounding message that shows you’ve understood their situation. 
-            Your message should:
+        IMPORTANT RULES:
+        - Do NOT greet the user (no "Hi", "Hello", etc.)
+        - Do NOT include their name unless it's natural mid-sentence
+        - Do NOT include any closing phrases like "take care", "have a nice day", etc.
+        - Do NOT ask “How are you?” or similar generic follow-ups
+        - Do NOT talk about yourself
+        - Do NOT restate your role or purpose
+        - Keep the focus entirely on the user’s perspective
 
-            - Reflect back something meaningful they’ve shared (e.g., age, job, lifestyle, interests…)
-            - Make them feel heard and understood
-            - Respond briefly, in 1-3 sentences, and in a friendly, supportive tone
-
-            
-
-
-            IMPORTANT RULES:
-            - Do NOT talk about yourself
-            - Do NOT end the conversation or ask them to come back later
-            - Do NOT say you share experiences, jobs, or interests with the user
-            - Do NOT use phrases like "as a fellow...", "I also...", "me too..."
-            - Just focus on the USER and their perspective
-
-            Keep the tone friendly, non-judgmental, and supportive. 
-            Do not introduce yourself, do not greet, do not repeat your role — just continue the conversation naturally as if you already know each other."""
+        Tone: friendly, non-judgmental, empathetic, and conversational."""
 
     async def run(self, dispatcher: CollectingDispatcher,
             tracker: Tracker,
@@ -921,7 +919,7 @@ class ActionStartInterview(Action):
             tracker: Tracker,
             domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
 
-        dispatcher.utter_message(text="How are you feeling today? Feel free to share anything on your mind.")
+        # dispatcher.utter_message(text="How are you feeling today? Feel free to share anything on your mind.")
 
         return [
             SlotSet("user_message", None),
@@ -1092,8 +1090,8 @@ class ValidateInterviewForm(FormValidationAction):
 
         for i, topic in enumerate(topics):
             if topic in recent_topics:
-                penalties[i] = 0.5  # penalizza topic già usati
-
+                penalties[i] = 0.5  
+                
         penalized_scores = cosine_scores * penalties
         best_idx = int(penalized_scores.argmax())
 
