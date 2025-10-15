@@ -1066,7 +1066,6 @@ class ValidateInterviewForm(FormValidationAction):
             return []
         return ["user_message"]
 
-    
     @staticmethod
     def detect_topic(user_message: str) -> str:
         user_emb = embedder.encode(user_message, convert_to_tensor=True)
@@ -1091,7 +1090,7 @@ class ValidateInterviewForm(FormValidationAction):
         for i, topic in enumerate(topics):
             if topic in recent_topics:
                 penalties[i] = 0.5  
-                
+
         penalized_scores = cosine_scores * penalties
         best_idx = int(penalized_scores.argmax())
 
@@ -1191,18 +1190,20 @@ class ValidateInterviewForm(FormValidationAction):
             messages_log = tracker.get_slot("messages_log") or []
             messages_log.append({"role": "user", "content": user_input, "talk_type": talk_type["label"], "confidence": talk_type["confidence"]})
 
+
             profile_data = analyze_profile(messages_log, {
-                "mood": tracker.get_slot("mood") or [],
-                "personality_traits": tracker.get_slot("personality_traits") or [],
-                "lifestyle": tracker.get_slot("lifestyle") or [],
-                "social_and_relationships": tracker.get_slot("social_and_relationships") or [],
-                "motivation": tracker.get_slot("motivation") or [],
-                "thought_patterns": tracker.get_slot("thought_patterns") or [],
-                "possible_disorders": tracker.get_slot("possible_disorders") or []
+                    "mood": tracker.get_slot("mood") or [],
+                    "personality_traits": tracker.get_slot("personality_traits") or [],
+                    "lifestyle": tracker.get_slot("lifestyle") or [],
+                    "social_and_relationships": tracker.get_slot("social_and_relationships") or [],
+                    "motivation": tracker.get_slot("motivation") or [],
+                    "thought_patterns": tracker.get_slot("thought_patterns") or [],
+                    "possible_disorders": tracker.get_slot("possible_disorders") or []
             })
 
-            
-            if (self.enough_information(tracker, user_input) and count >= 6) and self.user_wants_to_end(user_input, messages_log):
+
+            #Cambia prompt chiusura
+            if (self.enough_information(tracker, user_input) and count >= 8):
                 prompt = f"""
                     You are an empathetic mental health support chatbot.
                     The user has shared enough information, and your task is to respond with a short, kind, and empathetic closing message.
@@ -1233,12 +1234,64 @@ class ValidateInterviewForm(FormValidationAction):
                     **{k: profile_data.get(k, []) for k in profile_data}
                 }
 
+
+
+            if count >= 4:
+                prompt = f""" 
+                    You are an empathetic mental health profiler chatbot continuing an ongoing conversation.
+                    
+                    Think about your chat with the person :{json.dumps(messages_log, indent=4)} 
+                    And the profile you are building based on the conversation: {json.dumps(profile_data, indent=4)}
+                    
+                    Your goal is to generate a response that helps identify the user's potential mental health concerns,
+                    asking only for information needed to confirm or rule them out.
+                    Do not mention your goal or role in the conversation; ask questions naturally as part of the chat.
+
+                    The last message of the user is: "{user_input}"
+
+                    Don't give advice, coping strategies, interpretations, or explanations. Focus only on understanding.
+                """
+
+                messages_for_model = [{"role": "user", "content": prompt}]
+
+                model = get_model()
+                headers = {"Content-Type": "application/json"}
+                payload = {
+                    "model": model, 
+                    "messages": messages_for_model,
+                    "temperature": 0.28, 
+                    "max_tokens": 100,
+                    "frequency_penalty": 0.8,
+                    "presence_penalty": 0.6,
+                    "stop": ["\n"] 
+                    }
+
+                try:
+                    response = requests.post("http://localhost:1234/v1/chat/completions", json=payload, headers=headers)
+                    reply = response.json()['choices'][0]['message']['content'].strip().strip('"') if response.status_code == 200 else "Thank you for opening up today. I’m here whenever you’d like to talk again."
+                except Exception as e:
+                    print(f"Error: {e}")
+                    reply = "Thank you for opening up today. I’m here whenever you’d like to talk again."
+
+                messages_log.append({"role": "assistant", "content": reply})
+                dispatcher.utter_message(text=reply)
+                
+                return {
+                    "user_message": user_input,
+                    "message_count": count,
+                    "messages_log": messages_log,
+                    "requested_slot": "user_message",
+                    **{k: profile_data.get(k, []) for k in profile_data}
+                }
+
+
+
             
             recent_topics = tracker.get_slot("recent_topics") or []
             topic = self.select_next_topic(user_input, recent_topics)
             cluster = self.select_cluster(topic)
 
-            # aggiorna slot con rotazione degli ultimi 3 topic
+            # rotazione degli ultimi 3 topic
             recent_topics.append(topic)
             if len(recent_topics) > 3:
                 recent_topics.pop(0)
@@ -1250,29 +1303,30 @@ class ValidateInterviewForm(FormValidationAction):
             interests = tracker.get_slot("interests")
 
             prompt = f"""
-                You are an empathetic mental health support chatbot.
-                Your goal is to **explore the user's thoughts, feelings, behaviors, and lifestyle across multiple areas** to build a psychological profile over time. 
-                Do **not** provide coping strategies, advice, or problem-solving suggestions yet. Focus purely on understanding.
+            You are an empathetic mental health support chatbot continuing an ongoing conversation.
 
-                Avoid repeating topics recently discussed ({recent_topics[:-1]}), but try to **encourage the user to reflect on different topics**, not just the current one.
+            Your goal is to explore the user's thoughts, feelings, and behaviors to gradually build a psychological profile.
+            Do not give advice, coping strategies, interpretations, or explanations. Focus only on understanding and reflection.
 
-                User context:
-                - Name: {name}
-                - Age: {age}
-                - Occupation: {occupation}
-                - Interests: {interests}
+            User context:
+            - Name: {name}
+            - Age: {age}
+            - Occupation: {occupation}
+            - Interests: {interests}
 
-                Profile summary:
-                {json.dumps(profile_data, indent=4)}
+            Profile summary:
+            {json.dumps(profile_data, indent=4)}
 
-                Current topic: {topic}
-                Potential inspiration questions for exploration: {cluster}
+            Current topic: {topic}
+            Potential inspiration questions: {cluster}
 
-                Guidelines:
-                - Ask only **one open-ended question** at a time with only one message (max 1 sentences under 40 words).
-                - Be **curious, empathic, and natural**.
-                - Encourage the user to **share insights about multiple topics**, not just the current one.
-                - Avoid repeating recent topics or giving solutions.
+            Guidelines:
+            - Ask only **one open-ended question** at a time.
+            - Keep the question **short, 1 sentence, under 30 words**.
+            - Be **empathetic, natural, and conversational** but not intrusive.S
+            - **Do not** include reasons, explanations, or follow-ups like “this might help” or “we could explore this together”.
+            - **Do not** give advice, suggestions, or solutions.
+            - **Do not** summarize or repeat context; just continue the conversation naturally.
             """
 
             messages_for_model = [{"role": "user", "content": prompt}]
@@ -1284,9 +1338,10 @@ class ValidateInterviewForm(FormValidationAction):
                 "model": model,
                 "messages": messages_for_model,
                 "temperature": 0.35,
-                "max_tokens": 150,
+                "max_tokens": 100,
                 "frequency_penalty": 0.8,
-                "presence_penalty": 0.6
+                "presence_penalty": 0.6,
+                "stop": ["\n"] 
             }
 
             try:
@@ -1319,27 +1374,21 @@ class ActionSubmitInterviewForm(Action):
     def build_prompt(self, mood, personality_traits, lifestyle, social_and_relationships, motivation, thought_patterns, possible_disorders, messages_log) -> str:
             return f"""            
             You are a professional psychologist and behavioral scientist. 
-            You specialize in synthesizing psychological profiles from structured qualitative data. 
-            Your goal is to produce a concise, insightful, and coherent psychological profile that reflects the user’s emotional state, 
-            personality, lifestyle, relationships, motivation, cognitive patterns, and potential psychological challenges, based on the provided information. 
             
-            Build a psychological profile of a user based on the following information:
-
-                Mood: {mood}
-                Personality Traits: {personality_traits}
-                Lifestyle: {lifestyle}
-                Social and Relationships: {social_and_relationships}
-                Motivation: {motivation}
-                Thought Patterns: {thought_patterns}
-                Possible Disorders: {possible_disorders}
-
-            If needed, you may also refer to the following chat excerpts for additional context: {messages_log}
-
-            Please:
-                1. Summarize the user’s overall psychological profile in a few paragraphs, highlighting the connections between emotional tendencies, cognitive styles, and social behavior.
-                2. Describe the core personality structure and how it influences lifestyle and motivation.
-                3. Mention any potential psychological vulnerabilities or strengths.
-                4. Keep the tone professional, empathetic, and neutral, avoiding any diagnostic claims beyond what the data supports.
+            This is a conversation between a person and a chatbot: {messages_log}
+             
+               Which kind of psychological profile of the person emerges from the conversation? 
+               Is he possibly experiencing any of those conditions?
+                Anxiety disorders
+                Depressive disorders
+                Post-traumatic stress disorder (PTSD)
+                Obsessive-compulsive disorder (OCD)
+                Bipolar disorder
+                Schizophrenia and related psychotic disorders
+                Attention-deficit/hyperactivity disorder (ADHD)
+                Eating disorders
+                Substance use disorders
+                Personality disorders
             """
     
     def run(self, dispatcher: CollectingDispatcher,
@@ -1365,7 +1414,8 @@ class ActionSubmitInterviewForm(Action):
             "messages": [
                 {"role": "user", "content": prompt}
             ],
-            "temperature": 0.2
+            "temperature": 0.2,
+            "max_tokens": 300
             }
 
         try:
