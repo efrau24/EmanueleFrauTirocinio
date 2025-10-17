@@ -47,7 +47,13 @@ slots:
     influence_conversation: false
     mappings:
       - type: custom
-  
+
+  session_start_time:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: custom
+
   
   
   # --- Static User Info Slots ---

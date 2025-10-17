@@ -10,6 +10,8 @@ import torch
 import requests
 import logging
 import json 
+import os
+from datetime import datetime
 import re
 import pandas as pd
 import torch.nn.functional as F
@@ -38,6 +40,62 @@ ner_model = AutoModelForTokenClassification.from_pretrained("Davlan/xlm-roberta-
 ner_pipeline = pipeline("ner", model=ner_model, tokenizer=ner_tokenizer, aggregation_strategy="simple")
 
 
+LOG_FOLDER = "session_logs"
+os.makedirs(LOG_FOLDER, exist_ok=True)
+
+
+def make_safe_filename(s: str) -> str:
+    
+    safe = s.strip().lower()
+    safe = safe.replace(" ", "_")
+    safe = "".join(c for c in safe if c.isalnum() or c in "_-")
+    if not safe:
+        safe = "unknown"
+    return safe[:30]  
+
+def save_full_session(tracker: Tracker):
+
+
+    name = tracker.get_slot("name") or ""
+    age = tracker.get_slot("age") or ""
+    occupation = tracker.get_slot("occupation") or ""
+    interests = tracker.get_slot("interests") or ""
+
+
+    if not tracker.get_slot("session_start_time"):
+        tracker.slots["session_start_time"] = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    session_start = tracker.get_slot("session_start_time")
+
+    # Identificatore sessione di conversazione
+    user_signature = make_safe_filename(f"{name}_{age}_{session_start}")
+    if not user_signature:
+        user_signature = "unknown_user"
+
+    session_file = os.path.join(LOG_FOLDER, f"{user_signature}.txt")
+    metadata_file = os.path.join(LOG_FOLDER, f"{user_signature}_metadata.json")
+
+
+    messages = tracker.get_slot("messages_log") or []
+
+
+    with open(session_file, "w", encoding="utf-8") as f:
+        for msg in messages:
+            f.write(f"{msg['role'].upper()}: {msg['content']}\n")
+
+
+    metadata = {
+        "user_info": {"name": name, "age": age, "occupation": occupation, "interests": interests},
+        "session_start": session_start,
+        "last_update": datetime.now().isoformat(),
+    }
+
+    with open(metadata_file, "w", encoding="utf-8") as f:
+        json.dump(metadata, f, indent=4, ensure_ascii=False)
+
+    print(f"[INFO] Sessione salvata/aggiornata per utente '{user_signature}' in {session_file}")
+
+    
 occupations = [
     # Students / Education
     "High school student", "University student", "Postgraduate student",
@@ -521,6 +579,7 @@ class ActionSubmitFormUserInfo(Action):
             SlotSet("age", tracker.get_slot("age")),
             SlotSet("occupation", tracker.get_slot("occupation")),
             SlotSet("interests", tracker.get_slot("interests")),
+            SlotSet("session_start_time", datetime.now().strftime("%Y%m%d_%H%M%S")),
             FollowupAction("action_start_interview")
         ]
 
@@ -1065,6 +1124,8 @@ class ValidateInterviewForm(FormValidationAction):
         if tracker.get_slot("end_interview"):
             return []
         return ["user_message"]
+    
+
 
     @staticmethod
     def detect_topic(user_message: str) -> str:
@@ -1182,13 +1243,15 @@ class ValidateInterviewForm(FormValidationAction):
             if not isinstance(slot_value, str) or not slot_value.strip():
                 dispatcher.utter_message(text="Please share something so I can understand you better.")
                 return {"user_message": None}
-
+            
             user_input = slot_value.strip()
             count = (tracker.get_slot("message_count") or 0) + 1
             talk_type = self.classify_message(user_input, tokenizer, model1, model2, device)
 
             messages_log = tracker.get_slot("messages_log") or []
             messages_log.append({"role": "user", "content": user_input, "talk_type": talk_type["label"], "confidence": talk_type["confidence"]})
+
+            save_full_session(tracker)
 
 
             profile_data = analyze_profile(messages_log, {
@@ -1201,6 +1264,7 @@ class ValidateInterviewForm(FormValidationAction):
                     "possible_disorders": tracker.get_slot("possible_disorders") or []
             })
 
+            
 
             #Cambia prompt chiusura
             if (self.enough_information(tracker, user_input) and count >= 8):
@@ -1246,6 +1310,8 @@ class ValidateInterviewForm(FormValidationAction):
                     Your goal is to generate a response that helps identify the user's potential mental health concerns,
                     asking only for information needed to confirm or rule them out.
                     Do not mention your goal or role in the conversation; ask questions naturally as part of the chat.
+
+                    Avoid repeating questions already answered or topics already discussed.
 
                     The last message of the user is: "{user_input}"
 
@@ -1366,6 +1432,8 @@ class ValidateInterviewForm(FormValidationAction):
         except Exception as e:
             dispatcher.utter_message(text=f"Errore interno: {e}")
             return {"user_message": None}
+
+
 
 class ActionSubmitInterviewForm(Action):
     def name(self) -> str:
